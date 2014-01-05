@@ -276,13 +276,8 @@ function field_conditional_state_element_process($element, &$form_state, $form) 
       $element_states = field_conditional_state_set_field_state($element_conditions);
 
       $conditional_states = field_conditional_state_module_invoke();
-      $field_parents = $element['#field_parents'];
-      $form_element = &$form;
-      if (!empty($field_parents)) {
-        foreach ($field_parents as $parent) {
-          $form_element = &$form_element[$parent];
-        }
-      }
+      $form_element = drupal_array_get_nested_value($form, (array) $element['#field_parents']);
+
       foreach ($element_states as $state => $condition) {
         if (isset($form_element[$element['#field_name']])) {
           $function = $conditional_states[$state]['state_handler'];
