@@ -1,1 +1,7 @@
-name = Field conditional states
+name = Field Conditional State
+description = Set form field states attributes (visible, invisible, enabled, disabled, required) based on the values selected in other form fields.
+core = 7.x
+package = Fields
+
+dependencies[] = options
+
