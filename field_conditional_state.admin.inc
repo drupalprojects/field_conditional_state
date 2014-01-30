@@ -11,32 +11,34 @@
  *   the field type
  */
 function _field_conditional_state_get_field_states($type) {
-  $ret = array();
+  $states_available = array();
+
   switch ($type) {
     case 'list_boolean':
-      $ret = array(
-        'enabled',
-        'disabled',
-        'required',
-        'optional',
-        'visible',
-        'invisible',
-        'checked',
-        'unchecked',
+      $states_available = array(
+        'enabled' => t('Enabled'),
+        'disabled' => t('Disabled'),
+        'required' => t('Required'),
+        'optional' => t('Optional'),
+        'visible' => t('Visible'),
+        'invisible' => t('Invisible'),
+        'checked' => t('Checked'),
+        'unchecked' => t('Unchecked'),
       );
       break;
 
     default:
-      $ret = array('enabled',
-        'disabled',
-        'required',
-        'optional',
-        'visible',
-        'invisible',
+      $states_available = array(
+        'enabled' => t('Enabled'),
+        'disabled' => t('Disabled'),
+        'required' => t('Required'),
+        'optional' => t('Optional'),
+        'visible' => t('Visible'),
+        'invisible' => t('Invisible'),
       );
   }
 
-  return $ret;
+  return $states_available;
 }
 
 /**
@@ -46,28 +48,29 @@ function _field_conditional_state_get_field_states($type) {
  *   the field type
  */
 function _field_conditional_state_get_trigger_states($type) {
-  $ret = array();
+  $states_triggerable = array();
+
   switch ($type) {
     case 'list_boolean':
-      $ret = array('checked', 'unchecked');
+      $states_triggerable = array('checked', 'unchecked');
       break;
 
     case 'list_text':
     case 'list_float':
     case 'list_integer':
-      $ret = array('value');
+      $states_triggerable = array('value');
       break;
 
     case 'file':
     case 'image':
-      $ret = array('empty', 'filled');
+      $states_triggerable = array('empty', 'filled');
       break;
 
     default:
-      $ret = array('empty', 'filled', 'value');
+      $states_triggerable = array('empty', 'filled', 'value');
   }
 
-  return $ret;
+  return $states_triggerable;
 }
 
 /**
@@ -123,17 +126,17 @@ function field_conditional_state_settings_form($form, &$form_state, $instance) {
   }
 
   $subforms = array();
-  foreach ($fcs_states['possible_states'] as $state) {
+  foreach (array_keys($fcs_states['possible_states']) as $state) {
     $form['content']['tab-' . $state] = array(
       '#type' => 'fieldset',
-      '#title' => check_plain($state),
+      '#title' => $fcs_states['possible_states'][$state],
       'content' => array(),
     );
 
     $subforms[$state] = &$form['content']['tab-' . $state]['content'];
 
     $subforms[$state]['info'] = array(
-      '#markup' => "<p>" . t('The state is activated if and only if all listed groups are true.') . "</p>",
+      '#markup' => '<p>' . t('The state is activated if and only if all listed groups are true.') . '</p>',
     );
 
     $subforms[$state]['new_group'] = array(
@@ -157,8 +160,7 @@ function field_conditional_state_settings_form($form, &$form_state, $instance) {
     $new_row = &$subforms[$group['state']][$group['group_id']];
     $new_row = array(
       'states' => array(
-        '#prefix' => '<table id="' . $table_id . '">
-          <tr><th>' . t('Control field') . '</th><th>' . t('Trigger state') . '</th><th>' . t('Trigger values') . '</th><th></th></tr>',
+        '#prefix' => '<table ' . drupal_attributes(array('id' => $table_id)) . '><tr><th>' . t('Control field') . '</th><th>' . t('Trigger state') . '</th><th>' . t('Trigger value') . '</th><th>' . t('Operation') . '</th></tr>',
         '#suffix' => '</table>',
       ),
     );
@@ -295,41 +297,41 @@ function field_conditional_state_settings_form_submit($form, $form_state) {
       $fields['trigger_value'] = $values['trigger_value-' . $id];
     }
 
-    $query = db_update('field_conditional_states');
-    $query->fields($fields);
-    $query->condition('id', $id);
-    $query->execute();
+    db_update('field_conditional_state')
+      ->fields($fields)
+      ->condition('id', $id)
+      ->execute();
   }
 
   foreach ($fcs_states['existing_groups'] as $id) {
     if (!empty($values['control_field-new-' . $id]) && !empty($values['trigger_state-new-' . $id])) {
-      $query = db_insert('field_conditional_states');
-      $trigger_value = ($values['trigger_state-new-' . $id] == 'value' ? $values['trigger_value-new-' . $id] : 1);
-      $query->fields(array(
-        'group_id' => $id,
-        'control_field' => $values['control_field-new-' . $id],
-        'trigger_state' => $values['trigger_state-new-' . $id],
-        'trigger_value' => $trigger_value,
-      ));
-      $query->execute();
+      $trigger_value = ($values['trigger_state-new-' . $id] == 'value') ? $values['trigger_value-new-' . $id] : 1;
+      db_insert('field_conditional_state')
+        ->fields(array(
+          'group_id' => $id,
+          'control_field' => $values['control_field-new-' . $id],
+          'trigger_state' => $values['trigger_state-new-' . $id],
+          'trigger_value' => $trigger_value,
+        ))
+        ->execute();
     }
-    $q = db_update('field_conditional_states_groups');
-    $q->fields(array('type' => $values['group_type-' . $id]));
-    $q->condition('group_id', $id);
-    $q->execute();
+    db_update('field_conditional_states_group')
+      ->fields(array('type' => $values['group_type-' . $id]))
+      ->condition('group_id', $id)
+      ->execute();
   }
 
-  foreach ($fcs_states['possible_states'] as $state) {
+  foreach (array_keys($fcs_states['possible_states']) as $state) {
     if (!empty($values['new-group-' . $state])) {
-      $q = db_insert('field_conditional_states_groups');
-      $q->fields(array(
-        'state' => $state,
-        'entity_type' => $instance['entity_type'],
-        'bundle' => $instance['bundle'],
-        'field_name' => $instance['field_name'],
-        'type' => $values['new-group-' . $state],
-      ));
-      $q->execute();
+      db_insert('field_conditional_states_group')
+        ->fields(array(
+          'state' => $fcs_states['possible_states'][$state],
+          'entity_type' => $instance['entity_type'],
+          'bundle' => $instance['bundle'],
+          'field_name' => $instance['field_name'],
+          'type' => $values['new-group-' . $state],
+        ))
+        ->execute();
     }
   }
 }
@@ -338,10 +340,9 @@ function field_conditional_state_settings_form_submit($form, $form_state) {
  * Returns a basic / empty row of a single condition.
  */
 function _field_conditional_state_get_state_default_row($id, $classes = array()) {
-  $class_string = implode(" ", $classes);
   $state_id = drupal_html_id('field_conditional_state-state-' . $id);
   $new_state = array(
-    '#prefix' => '<tr class="' . $class_string . '" id="' . $state_id . '">',
+    '#prefix' => '<tr ' . drupal_attributes(array('id' => $state_id, 'class' => $classes)) . '>',
     '#suffix' => '</tr>',
   );
 
@@ -358,7 +359,7 @@ function _field_conditional_state_get_state_default_row($id, $classes = array())
   );
 
   $new_state['trigger_state-' . $id] = array(
-    '#prefix' => '<td id="trigger_state-' . $id . '">',
+    '#prefix' => '<td ' . drupal_attributes(array('id' => drupal_html_id('trigger_state-' . $id))) . '>',
     '#suffix' => '</td>',
     '#type' => 'select',
     '#options' => array(),
@@ -370,7 +371,7 @@ function _field_conditional_state_get_state_default_row($id, $classes = array())
     '#type' => 'textfield',
     '#states' => array(
       'visible' => array(
-        ':input[name="trigger_state-' . $id . '"]' => array('value' => 'value'),
+        ':input[name="trigger_state-' . check_plain($id) . '"]' => array('value' => 'value'),
       ),
     ),
   );
@@ -406,7 +407,7 @@ function _field_conditional_state_control_field_change($form, $form_state) {
  * Ajax callback for removing elements.
  */
 function _field_conditional_state_ajax_remove($form, $form_state) {
-  return "";
+  return '';
 }
 
 /**
@@ -415,9 +416,9 @@ function _field_conditional_state_ajax_remove($form, $form_state) {
 function _field_conditional_state_delete_condition($form, $form_state) {
   $state_id = $form_state['triggering_element']['#field_conditional_state_state_id'];
   if (!empty($state_id)) {
-    $query = db_delete('field_conditional_states');
-    $query->condition('id', $state_id);
-    $query->execute();
+    db_delete('field_conditional_state')
+      ->condition('id', $state_id)
+      ->execute();
   }
 }
 
@@ -428,12 +429,12 @@ function _field_conditional_state_delete_condition($form, $form_state) {
 function _field_conditional_state_delete_condition_group($form, $form_state) {
   $group_id = $form_state['triggering_element']['#field_conditional_state_group_id'];
   if (!empty($group_id)) {
-    $query = db_delete('field_conditional_states');
-    $query->condition('group_id', $group_id);
-    $query->execute();
+    db_delete('field_conditional_state')
+      ->condition('group_id', $group_id)
+      ->execute();
 
-    $query = db_delete('field_conditional_states_groups');
-    $query->condition('group_id', $group_id);
-    $query->execute();
+    db_delete('field_conditional_states_group')
+      ->condition('group_id', $group_id)
+      ->execute();
   }
 }
