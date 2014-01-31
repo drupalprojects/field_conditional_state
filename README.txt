@@ -12,7 +12,7 @@ INTRODUCTION
 
 Current Maintainer: Tobias Xy
 
-The Field conditional state module (FCS) allows to set the status 
+The Field Conditional State module (FCS) allows to set the status 
 of entity fields depending on the value / the status 
 of different fields within the same entity.
 
@@ -22,7 +22,7 @@ USAGE
 ----------
 
   * Create new entity fields
-  * On the field settings page go to Conditional States tab
+  * On the field settings page go to Conditional states tab
   * Manage your conditional states!
       
 REQUIREMENTS     
