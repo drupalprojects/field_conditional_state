@@ -325,7 +325,7 @@ function field_conditional_state_settings_form_submit($form, $form_state) {
     if (!empty($values['new-group-' . $state])) {
       db_insert('field_conditional_states_group')
         ->fields(array(
-          'state' => $fcs_states['possible_states'][$state],
+          'state' => $state,
           'entity_type' => $instance['entity_type'],
           'bundle' => $instance['bundle'],
           'field_name' => $instance['field_name'],
