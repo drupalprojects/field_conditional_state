@@ -354,7 +354,7 @@ function _field_conditional_state_get_state_default_row($id, $classes = array())
     '#field_conditional_state_state_id' => $id,
     '#ajax' => array(
       'callback' => '_field_conditional_state_control_field_change',
-      'wrapper' => 'trigger_state-' . $id,
+      'wrapper' => $state_id,
     ),
   );
 
@@ -400,7 +400,7 @@ function _field_conditional_state_control_field_change($form, $form_state) {
   $group_state = $elem['#field_conditional_state_group']['state'];
   $group_id = $elem['#field_conditional_state_group']['group_id'];
   $state_id = $elem['#field_conditional_state_state_id'];
-  return $form['content']['tab-' . $group_state]['content'][$group_id]['states'][$state_id]['trigger_state-' . $state_id];
+  return $form['content']['tab-' . $group_state]['content'][$group_id]['states'][$state_id];
 }
 
 /**
