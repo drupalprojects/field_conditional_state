@@ -294,50 +294,44 @@ function _field_conditional_state_build_states_array(&$element, $groups) {
       if (empty($element['#states'][$group['state']])) {
         $element['#states'][$group['state']] = array();
       }
-
-      switch ($group['type']) {
+      
+      /*
+       * And conditions are added to the top level, but or/xor conditions are added into a second level
+       * so we have to distinguish there between 'and' and 'or/xor'
+       */
+      switch($group['type']) {
         case 'and':
-          foreach ($group['states'] as $state) {
-            if ($state['trigger_state'] == 'value') {
-              $trigger = array($state['trigger_state'] => $state['trigger_value']);
-            }
-            else {
-              $trigger = array($state['trigger_state'] => TRUE);
-            }
-            // Add state by getting the actually used ID from $ids.
-            $element['#states'][$group['state']]['#' . $ids[$state['control_field'] . '_field_conditional_state_control_' . $element['#field_conditional_state_id']] . ' input'] = $trigger;
-          }
-          break;
-
+          $current = &$element['#states'][$group['state']];
+        break;
         case 'or':
-          $current = &$element['#states'][$group['state']][];
-          $current = array();
-          foreach ($group['states'] as $state) {
-            if ($state['trigger_state'] == 'value') {
-              $trigger = array($state['trigger_state'] => $state['trigger_value']);
-            }
-            else {
-              $trigger = array($state['trigger_state'] => TRUE);
-            }
-            $tmp = &$current[];
-            $tmp['#' . $ids[$state['control_field'] . '_field_conditional_state_control_' . $element['#field_conditional_state_id']] . ' input'] = $trigger;
-          }
-          break;
-
         case 'xor':
           $current = &$element['#states'][$group['state']][];
-          $current = array('xor');
-          foreach ($group['states'] as $state) {
-            if ($state['trigger_state'] == 'value') {
-              $trigger = array($state['trigger_state'] => $state['trigger_value']);
-            }
-            else {
-              $trigger = array($state['trigger_state'] => TRUE);
-            }
-            $tmp = &$current[];
-            $tmp['#' . $ids[$state['control_field'] . '_field_conditional_state_control_' . $element['#field_conditional_state_id']] . ' input'] = $trigger;
+          $current = array();
+          if($group['type'] == 'xor') {
+            $current[] = 'xor';
           }
-          break;
+        break;
+      }
+      
+      foreach ($group['states'] as $state) {
+        if ($state['trigger_state'] == 'value') {
+          $trigger = array($state['trigger_state'] => $state['trigger_value']);
+        }
+        else {
+          $trigger = array($state['trigger_state'] => TRUE);
+        }
+        
+        $control_id = $ids[$state['control_field'] . '_field_conditional_state_control_' . $element['#field_conditional_state_id']];
+        
+        if($group['type'] == 'and') {
+          // add condition to the top level
+          $current['#' . $control_id . ' input'] = $trigger;
+        } else {
+          // for or/xor conditions $current already points to the second level, 
+          // but each single condition gets its own third level within the array
+          $tmp = &$current[];
+          $tmp['#' . $control_id . ' input'] = $trigger;
+        }
       }
     }
   }
