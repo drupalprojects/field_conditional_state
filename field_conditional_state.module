@@ -202,7 +202,7 @@ function field_conditional_state_menu() {
  */
 function field_conditional_state_permission() {
   return array(
-    'administer field conditional states' => array(
+    'administer field_conditional_state' => array(
       'title' => t('Administer field conditional states'),
     ),
   );

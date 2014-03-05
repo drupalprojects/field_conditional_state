@@ -269,3 +269,13 @@ function field_conditional_state_update_7200() {
 
   return t('Upgraded module settings from 7.x-1.x to 7.x-2.x.');
 }
+
+/**
+ * Updates field conditional states permission name.
+ */
+function field_conditional_state_update_7201() {
+  db_update('role_permission')
+  ->fields(array('permission' => 'administer field_conditional_state'))
+  ->condition('permission', 'administer field conditional states')
+  ->execute();
+}
