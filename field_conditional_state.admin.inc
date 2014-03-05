@@ -176,6 +176,7 @@ function field_conditional_state_settings_form($form, &$form_state, $instance) {
     $new_row['states']['delete-group-' . $group['group_id']] = array(
       '#prefix' => '<td>',
       '#type' => 'submit',
+      '#name' => 'field_conditional_state-delete_group-' . $group['group_id'],
       '#value' => t('Delete group'),
       '#field_conditional_state_group_id' => $group['group_id'],
       '#suffix' => '</td></tr>',
