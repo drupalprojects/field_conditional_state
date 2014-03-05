@@ -341,7 +341,7 @@ function _field_conditional_state_build_states_array(&$element, $groups) {
  * Implements hook_field_delete_instance().
  */
 function field_conditional_state_field_delete_instance($instance) {
-  $query = db_query("SELECT group_id, field_name FROM {field_conditional_states_groups} WHERE entity_type = :type AND bundle = :bundle", array(':type' => $instance['entity_type'], ':bundle' => $instance['bundle']));
+  $query = db_query("SELECT group_id, field_name FROM {field_conditional_states_group} WHERE entity_type = :type AND bundle = :bundle", array(':type' => $instance['entity_type'], ':bundle' => $instance['bundle']));
 
   while ($record = $query->fetchAssoc()) {
     $delete = db_delete('field_conditional_state');
