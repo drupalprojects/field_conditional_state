@@ -314,7 +314,7 @@ function _field_conditional_state_build_states_array(&$element, $groups) {
       }
       
       foreach ($group['states'] as $state) {
-        if ($state['trigger_state'] == 'value') {
+        if ($state['trigger_state'] == 'value' || $state['trigger_state'] == '!value') {
           $trigger = array($state['trigger_state'] => $state['trigger_value']);
         }
         else {

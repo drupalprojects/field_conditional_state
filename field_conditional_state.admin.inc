@@ -58,7 +58,7 @@ function _field_conditional_state_get_trigger_states($type) {
     case 'list_text':
     case 'list_float':
     case 'list_integer':
-      $states_triggerable = array('value');
+      $states_triggerable = array('value', '!value');
       break;
 
     case 'file':
@@ -67,7 +67,7 @@ function _field_conditional_state_get_trigger_states($type) {
       break;
 
     default:
-      $states_triggerable = array('empty', 'filled', 'value');
+      $states_triggerable = array('empty', 'filled', 'value', '!value');
   }
 
   return $states_triggerable;
@@ -294,7 +294,7 @@ function field_conditional_state_settings_form_submit($form, $form_state) {
       'trigger_state' => $values['trigger_state-' . $id],
       'trigger_value' => 1,
     );
-    if ($values['trigger_state-' . $id] == 'value') {
+    if ($values['trigger_state-' . $id] == 'value' || $values['trigger_state-' . $id] == '!value') {
       $fields['trigger_value'] = $values['trigger_value-' . $id];
     }
 
@@ -306,7 +306,11 @@ function field_conditional_state_settings_form_submit($form, $form_state) {
 
   foreach ($fcs_states['existing_groups'] as $id) {
     if (!empty($values['control_field-new-' . $id]) && !empty($values['trigger_state-new-' . $id])) {
-      $trigger_value = ($values['trigger_state-new-' . $id] == 'value') ? $values['trigger_value-new-' . $id] : 1;
+      $trigger_value = 1;
+      if($values['trigger_state-new-' . $id] == 'value' || $values['trigger_state-new-' . $id] == '!value') {
+        $trigger_value = $values['trigger_value-new-' . $id];
+      }
+
       db_insert('field_conditional_state')
         ->fields(array(
           'group_id' => $id,
@@ -372,7 +376,10 @@ function _field_conditional_state_get_state_default_row($id, $classes = array())
     '#type' => 'textfield',
     '#states' => array(
       'visible' => array(
-        ':input[name="trigger_state-' . check_plain($id) . '"]' => array('value' => 'value'),
+        array(
+          array(':input[name="trigger_state-' . check_plain($id) . '"]' => array('value' => 'value')),
+          array(':input[name="trigger_state-' . check_plain($id) . '"]' => array('value' => '!value')),
+        ),
       ),
     ),
   );
