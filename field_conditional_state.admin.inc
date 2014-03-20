@@ -95,6 +95,10 @@ function _field_conditional_state_get_group_types() {
  *   the field instance for which the form is build
  */
 function field_conditional_state_settings_form($form, &$form_state, $instance) {
+  if (!_field_conditional_state_control_field_whitelist($instance['widget']['type'])) {
+    $form['info'] = array('#markup' => '<p>' . t("The currently selected widget for this field isn't supported by Field Conditional States. Please choose a different widget or create a support request in Field Conditional States issue queue on drupal.org.") . '</p>');
+    return $form;
+  }
   if (!isset($form_state['#field_conditional_state'])) {
     $form_state['#field_conditional_state'] = array();
   }
@@ -307,7 +311,7 @@ function field_conditional_state_settings_form_submit($form, $form_state) {
   foreach ($fcs_states['existing_groups'] as $id) {
     if (!empty($values['control_field-new-' . $id]) && !empty($values['trigger_state-new-' . $id])) {
       $trigger_value = 1;
-      if($values['trigger_state-new-' . $id] == 'value' || $values['trigger_state-new-' . $id] == '!value') {
+      if ($values['trigger_state-new-' . $id] == 'value' || $values['trigger_state-new-' . $id] == '!value') {
         $trigger_value = $values['trigger_value-new-' . $id];
       }
 
