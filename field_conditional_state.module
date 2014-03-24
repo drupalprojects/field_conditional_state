@@ -87,14 +87,15 @@ function _field_conditional_state_get_element_parents($widget_type) {
       break;
 
     default:
-      // options_onoff, options_select, taxonomy_autocomplete, text_textarea
+      // options_buttons, options_onoff, options_select, taxonomy_autocomplete,
+      // text_textarea
   }
 
   return $paths;
 }
 
 /**
- * Manages the whitelist of supported widgets.
+ * Checks whether the given widget is supported as control field.
  *
  * @param string $widget
  *   a widget name to check for support
@@ -103,7 +104,7 @@ function _field_conditional_state_get_element_parents($widget_type) {
  *   the whitelist as array if no explicit widget is given as argument OR
  *   a boolean indicating the support of the given widget 
  */
-function _field_conditional_state_control_field_whitelist($widget = FALSE) {
+function field_conditional_state_control_field_is_supported($widget = FALSE) {
   $whitelist = array(
     'file_generic',
     'image_image',
@@ -115,6 +116,37 @@ function _field_conditional_state_control_field_whitelist($widget = FALSE) {
     'text_textfield',
     'url_external',
   );
+  if (!$widget) {
+    return $whitelist;
+  }
+  else {
+    return in_array($widget, $whitelist);
+  }
+}
+
+/**
+ * Checks whether the given widget is supported as controled field.
+ *
+ * @param string $widget
+ *   a widget name to check for support
+ *
+ * @return array/boolean
+ *   the whitelist as array if no explicit widget is given as argument OR
+ *   a boolean indicating the support of the given widget 
+ */
+function field_conditional_state_controled_field_is_supported($widget = FALSE) {
+
+  // All fields available as control fields can also be used as controled fields
+  // because we need less or at least equal informations as for
+  // the control fields.
+  $whitelist = field_conditional_state_control_field_is_supported();
+
+  $controled_only = array(
+    'options_buttons',
+  );
+
+  $whitelist = array_merge($whitelist, $controled_only);
+
   if (!$widget) {
     return $whitelist;
   }
@@ -186,7 +218,9 @@ function field_conditional_state_element_after_build($element, &$form_state) {
       $actual_element['#field_name'] = $field_data['#field_name'];
     }
 
-    $ids[$field_data['#entity_type'] . '__' . $field_data['#bundle'] . '__' . $field_data['#field_name']] = $actual_element['#id'];
+    if (field_conditional_state_control_field_is_supported($element['#field_conditional_state_widget_type'])) {
+      $ids[$field_data['#entity_type'] . '__' . $field_data['#bundle'] . '__' . $field_data['#field_name']] = $actual_element['#id'];
+    }
   }
 
   return $element;
@@ -340,7 +374,11 @@ function field_conditional_state_form_field_ui_field_overview_form_alter(&$form,
  * Implements hook_field_widget_form_alter().
  */
 function field_conditional_state_field_widget_form_alter(&$element, &$form_state, $context) {
-  if (_field_conditional_state_control_field_whitelist($context['instance']['widget']['type'])) {
+
+  // The fields supported as control fields are a subset of the fields
+  // supported as controled fields, so we only have to check
+  // the controled field whitelist here.
+  if (field_conditional_state_controled_field_is_supported($context['instance']['widget']['type'])) {
     $element['#after_build'][] = 'field_conditional_state_element_after_build';
     $element['#field_conditional_state_widget_type'] = $context['instance']['widget']['type'];
   }

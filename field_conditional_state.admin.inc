@@ -95,7 +95,7 @@ function _field_conditional_state_get_group_types() {
  *   the field instance for which the form is build
  */
 function field_conditional_state_settings_form($form, &$form_state, $instance) {
-  if (!_field_conditional_state_control_field_whitelist($instance['widget']['type'])) {
+  if (!field_conditional_state_controled_field_is_supported($instance['widget']['type'])) {
     $form['info'] = array('#markup' => '<p>' . t("The currently selected widget for this field isn't supported by Field Conditional States. Please choose a different widget or create a support request in Field Conditional States issue queue on drupal.org.") . '</p>');
     return $form;
   }
