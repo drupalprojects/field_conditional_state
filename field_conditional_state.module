@@ -87,8 +87,8 @@ function _field_conditional_state_get_element_parents($widget_type) {
       break;
 
     default:
-      // options_buttons, options_onoff, options_select, taxonomy_autocomplete,
-      // text_textarea
+      // options_buttons, options_onoff, options_select, starrating_rating_widget,
+      // taxonomy_autocomplete, text_textarea
   }
 
   return $paths;
@@ -111,6 +111,7 @@ function field_conditional_state_control_field_is_supported($widget = FALSE) {
     'number',
     'options_onoff',
     'options_select',
+    'starrating_rating_widget',
     'taxonomy_autocomplete',
     'text_textarea',
     'text_textfield',
