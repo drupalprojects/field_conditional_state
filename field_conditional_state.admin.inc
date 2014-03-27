@@ -112,7 +112,17 @@ function field_conditional_state_settings_form($form, &$form_state, $instance) {
   foreach ($fields as $name => $data) {
     if ($name != $instance['field_name']) {
       $dependees[$name] = field_info_field($data['field_name']);
-      $dependees_as_options[$name] = $data['label'];
+
+      // We have to include invalid control fields here, to avoid errors
+      // with states using an invalid control field (legacy reasons).
+      // We'll handle them later in this function.
+      if (!field_conditional_state_control_field_is_supported($data['widget']['type'])) {
+        $dependees[$name]['#field_conditional_state_invalid'] = TRUE;
+      }
+      else {
+        // By default we only want to show valid control fields.
+        $dependees_as_options[$name] = $data['label'];
+      }
     }
   }
 
@@ -156,6 +166,7 @@ function field_conditional_state_settings_form($form, &$form_state, $instance) {
 
   }
 
+  $invalid_states_count = 0;
   $groups = _field_conditional_state_get_conditional_states($instance['entity_type'], $instance['bundle'], $instance['field_name']);
   foreach ($groups as $group) {
     $fcs_states['existing_groups'][] = $group['group_id'];
@@ -194,16 +205,28 @@ function field_conditional_state_settings_form($form, &$form_state, $instance) {
     $bg = 'even';
     foreach ($group['states'] as $state) {
       $fcs_states['existing_states'][] = $state['id'];
+      $control_field = $state['control_field'];
+
+      $options = $dependees_as_options;
+      $row_classes = array($bg);
+      // If the control field is invalid, add it to the options
+      // and mark the line as invalid.
+      if (isset($dependees[$control_field]['#field_conditional_state_invalid']) &&
+        $dependees[$control_field]['#field_conditional_state_invalid']) {
+        $options[$control_field] = $fields[$control_field]['label'];
+
+        $row_classes[0] = 'field_conditional_state_invalid_state';
+        $invalid_states_count++;
+      }
 
       $new_state = &$new_row['states'][$state['id']];
-      $new_state = _field_conditional_state_get_state_default_row($state['id'], array($bg));
+      $new_state = _field_conditional_state_get_state_default_row($state['id'], $row_classes);
 
-      $control_field = $state['control_field'];
       if (!empty($form_state['values'])) {
         $control_field = $form_state['values']['control_field-' . $state['id']];
       }
 
-      $new_state['control_field-' . $state['id']]['#options'] = $dependees_as_options;
+      $new_state['control_field-' . $state['id']]['#options'] = $options;
       $new_state['control_field-' . $state['id']]['#default_value'] = $control_field;
       $new_state['control_field-' . $state['id']]['#field_conditional_state_group'] = $group;
 
@@ -237,6 +260,10 @@ function field_conditional_state_settings_form($form, &$form_state, $instance) {
       '#prefix' => '<td>',
       '#suffix' => '</td>',
     );
+  }
+
+  if ($invalid_states_count > 0) {
+    drupal_set_message(t("There are @count invalid states on this page. They were probably created in an earlier version of Field Conditional States but aren't supported anymore!", array('@count' => $invalid_states_count)), 'warning');
   }
 
   $form['action'] = array(
