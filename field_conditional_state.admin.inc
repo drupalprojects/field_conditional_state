@@ -11,34 +11,41 @@
  *   the field type
  */
 function _field_conditional_state_get_field_states($type) {
-  $states_available = array();
+  $states = array(
+    'enabled' => t('Enabled'),
+    'disabled' => t('Disabled'),
+    'required' => t('Required'),
+    'optional' => t('Optional'),
+    'visible' => t('Visible'),
+    'invisible' => t('Invisible'),
+    'checked' => t('Checked'),
+    'unchecked' => t('Unchecked'),
+  );
 
   switch ($type) {
-    case 'list_boolean':
-      $states_available = array(
-        'enabled' => t('Enabled'),
-        'disabled' => t('Disabled'),
-        'required' => t('Required'),
-        'optional' => t('Optional'),
-        'visible' => t('Visible'),
-        'invisible' => t('Invisible'),
-        'checked' => t('Checked'),
-        'unchecked' => t('Unchecked'),
-      );
+    case 'file_generic':
+    case 'image_image':
+    case 'number':
+    case 'options_buttons':
+    case 'options_select':
+    case 'starrating_rating_widget':
+    case 'taxonomy_autocomplete':
+    case 'text_textarea':
+    case 'text_textfield':
+    case 'url_external':
+      unset($states['checked']);
+      unset($states['unchecked']);
+      break;
+
+    case 'options_onoff':
       break;
 
     default:
-      $states_available = array(
-        'enabled' => t('Enabled'),
-        'disabled' => t('Disabled'),
-        'required' => t('Required'),
-        'optional' => t('Optional'),
-        'visible' => t('Visible'),
-        'invisible' => t('Invisible'),
-      );
+      // Widgets not listed here aren't supported.
+      $states = array();
   }
 
-  return $states_available;
+  return $states;
 }
 
 /**
@@ -48,26 +55,44 @@ function _field_conditional_state_get_field_states($type) {
  *   the field type
  */
 function _field_conditional_state_get_trigger_states($type) {
-  $states_triggerable = array();
+  $states_triggerable = array(
+    'checked' => t('Checked'),
+    'unchecked' => t('Unchecked'),
+    'empty' => t('Empty'),
+    'filled' => t('Filled'),
+    'value' => t('Value is'),
+    '!value' => t('Value is NOT'),
+  );
 
   switch ($type) {
-    case 'list_boolean':
-      $states_triggerable = array('checked', 'unchecked');
+    case 'file_generic':
+    case 'image_image':
+      unset($states_triggerable['checked']);
+      unset($states_triggerable['unchecked']);
+      unset($states_triggerable['value']);
+      unset($states_triggerable['!value']);
       break;
 
-    case 'list_text':
-    case 'list_float':
-    case 'list_integer':
-      $states_triggerable = array('value', '!value');
+    case 'number':
+    case 'options_select':
+    case 'starrating_rating_widget':
+    case 'taxonomy_autocomplete':
+    case 'text_textfield':
+    case 'url_external':
+      unset($states_triggerable['checked']);
+      unset($states_triggerable['unchecked']);
       break;
 
-    case 'file':
-    case 'image':
-      $states_triggerable = array('empty', 'filled');
+    case 'options_onoff':
+      unset($states_triggerable['empty']);
+      unset($states_triggerable['filled']);
+      unset($states_triggerable['value']);
+      unset($states_triggerable['!value']);
       break;
 
     default:
-      $states_triggerable = array('empty', 'filled', 'value', '!value');
+      // Widgets not listed here aren't supported.
+      $states_triggerable = array();
   }
 
   return $states_triggerable;
@@ -95,14 +120,17 @@ function _field_conditional_state_get_group_types() {
  *   the field instance for which the form is build
  */
 function field_conditional_state_settings_form($form, &$form_state, $instance) {
-  if (!field_conditional_state_controled_field_is_supported($instance['widget']['type'])) {
-    $form['info'] = array('#markup' => '<p>' . t("The currently selected widget for this field isn't supported by Field Conditional States. Please choose a different widget or create a support request in Field Conditional States issue queue on drupal.org.") . '</p>');
-    return $form;
-  }
   if (!isset($form_state['#field_conditional_state'])) {
     $form_state['#field_conditional_state'] = array();
   }
   $fcs_states = &$form_state['#field_conditional_state'];
+
+  $fcs_states['possible_states'] = _field_conditional_state_get_field_states($instance['widget']['type']);
+
+  if (!field_conditional_state_controled_field_is_supported($instance['widget']['type']) || empty($fcs_states['possible_states'])) {
+    $form['info'] = array('#markup' => '<p>' . t("The currently selected widget for this field isn't supported by Field Conditional States. Please choose a different widget or create a support request in Field Conditional States issue queue on drupal.org.") . '</p>');
+    return $form;
+  }
 
   $fields = field_info_instances($instance['entity_type'], $instance['bundle']);
   $current_field = field_info_field($instance['field_name']);
@@ -111,7 +139,7 @@ function field_conditional_state_settings_form($form, &$form_state, $instance) {
   $dependees_as_options = array();
   foreach ($fields as $name => $data) {
     if ($name != $instance['field_name']) {
-      $dependees[$name] = field_info_field($data['field_name']);
+      $dependees[$name] = field_info_instance($instance['entity_type'], $data['field_name'], $instance['bundle']);
 
       // We have to include invalid control fields here, to avoid errors
       // with states using an invalid control field (legacy reasons).
@@ -125,8 +153,6 @@ function field_conditional_state_settings_form($form, &$form_state, $instance) {
       }
     }
   }
-
-  $fcs_states['possible_states'] = _field_conditional_state_get_field_states($current_field['type']);
 
   $fcs_states['existing_states'] = array();
   $fcs_states['existing_groups'] = array();
@@ -230,7 +256,7 @@ function field_conditional_state_settings_form($form, &$form_state, $instance) {
       $new_state['control_field-' . $state['id']]['#default_value'] = $control_field;
       $new_state['control_field-' . $state['id']]['#field_conditional_state_group'] = $group;
 
-      $new_state['trigger_state-' . $state['id']]['#options'] = drupal_map_assoc(_field_conditional_state_get_trigger_states($dependees[$control_field]['type']));
+      $new_state['trigger_state-' . $state['id']]['#options'] = _field_conditional_state_get_trigger_states($dependees[$control_field]['widget']['type']);
       $new_state['trigger_state-' . $state['id']]['#default_value'] = $state['trigger_state'];
 
       $new_state['trigger_value-' . $state['id']]['#default_value'] = $state['trigger_value'];
@@ -246,7 +272,7 @@ function field_conditional_state_settings_form($form, &$form_state, $instance) {
     $trigger_states = array();
     if (!empty($form_state['values']) && !empty($form_state['values']['control_field-' . $new_id])) {
       $control_field = $form_state['values']['control_field-' . $new_id];
-      $trigger_states = drupal_map_assoc(_field_conditional_state_get_trigger_states($dependees[$control_field]['type']));
+      $trigger_states = _field_conditional_state_get_trigger_states($dependees[$control_field]['widget']['type']);
     }
 
     $new_state['control_field-' . $new_id]['#options'] = $dependees_as_options;

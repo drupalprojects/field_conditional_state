@@ -252,6 +252,8 @@ function _field_conditional_state_add_direct_states($element) {
     'disabled',
     'required',
     'optional',
+    'checked',
+    'unchecked',
   );
   _field_conditional_state_build_states_array($element, $states, $state_types);
 
