@@ -76,6 +76,7 @@ function _field_conditional_state_get_element_parents($widget_type) {
       break;
 
     case 'number':
+    case 'starrating_rating_widget':
     case 'text_textfield':
       $paths['actual_element'] = array('value');
       $paths['field_data'] = array('value');
@@ -87,7 +88,7 @@ function _field_conditional_state_get_element_parents($widget_type) {
       break;
 
     default:
-      // options_buttons, options_onoff, options_select, starrating_rating_widget,
+      // options_buttons, options_onoff, options_select,
       // taxonomy_autocomplete, text_textarea
   }
 
