@@ -23,6 +23,7 @@ function _field_conditional_state_get_field_states($type) {
   );
 
   switch ($type) {
+    case 'email_textfield':
     case 'file_generic':
     case 'image_image':
     case 'number':
@@ -73,6 +74,7 @@ function _field_conditional_state_get_trigger_states($type) {
       unset($states_triggerable['!value']);
       break;
 
+    case 'email_textfield':
     case 'number':
     case 'options_select':
     case 'starrating_rating_widget':
