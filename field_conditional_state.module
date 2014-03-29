@@ -68,6 +68,11 @@ function _field_conditional_state_get_conditional_states($entity_type, $bundle, 
 function _field_conditional_state_get_element_parents($widget_type) {
   $paths = array('actual_element' => array(), 'field_data' => array());
   switch ($widget_type) {
+    case 'entityreference_autocomplete':
+      $paths['actual_element'] = array('target_id');
+      $paths['field_data'] = array('target_id');
+      break;
+
     case 'email_textfield':
       $paths['actual_element'] = array('email');
       $paths['field_data'] = array();
@@ -93,8 +98,8 @@ function _field_conditional_state_get_element_parents($widget_type) {
       break;
 
     default:
-      // options_buttons, options_onoff, options_select,
-      // taxonomy_autocomplete, text_textarea
+      // entityreference_autocomplete_tags, options_buttons, options_onoff,
+      // options_select, taxonomy_autocomplete, text_textarea
   }
 
   return $paths;
@@ -113,6 +118,8 @@ function _field_conditional_state_get_element_parents($widget_type) {
 function field_conditional_state_control_field_is_supported($widget = FALSE) {
   $whitelist = array(
     'email_textfield',
+    'entityreference_autocomplete',
+    'entityreference_autocomplete_tags',
     'file_generic',
     'image_image',
     'number',

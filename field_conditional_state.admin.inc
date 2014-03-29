@@ -24,6 +24,7 @@ function _field_conditional_state_get_field_states($type) {
 
   switch ($type) {
     case 'email_textfield':
+    case 'entityreference_autocomplete_tags':
     case 'file_generic':
     case 'image_image':
     case 'number':
@@ -36,6 +37,13 @@ function _field_conditional_state_get_field_states($type) {
     case 'url_external':
       unset($states['checked']);
       unset($states['unchecked']);
+      break;
+
+    case 'entityreference_autocomplete':
+      unset($states['checked']);
+      unset($states['unchecked']);
+      unset($states['visible']);
+      unset($states['invisible']);
       break;
 
     case 'options_onoff':
@@ -75,6 +83,8 @@ function _field_conditional_state_get_trigger_states($type) {
       break;
 
     case 'email_textfield':
+    case 'entityreference_autocomplete':
+    case 'entityreference_autocomplete_tags':
     case 'number':
     case 'options_select':
     case 'starrating_rating_widget':
