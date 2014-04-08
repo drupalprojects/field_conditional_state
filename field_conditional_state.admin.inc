@@ -165,6 +165,13 @@ function field_conditional_state_settings_form($form, &$form_state, $instance) {
       $new_state['trigger_state-' . $state['id']]['#options'] = _field_conditional_state_get_trigger_states($dependees[$control_field]['widget']['type']);
       $new_state['trigger_state-' . $state['id']]['#default_value'] = $state['trigger_state'];
 
+      $control_field_instance = field_info_instance($group['entity_type'], $control_field, $group['bundle']);
+
+      if (in_array($control_field_instance['widget']['type'], array('options_buttons', 'options_select'))) {
+        $new_state['trigger_value-' . $state['id']]['#options'] = list_allowed_values(field_info_field($control_field));
+        $new_state['trigger_value-' . $state['id']]['#type'] = 'select';
+      }
+
       $new_state['trigger_value-' . $state['id']]['#default_value'] = $state['trigger_value'];
 
       $bg = ($bg == 'odd' ? 'even' : 'odd');
@@ -187,6 +194,15 @@ function field_conditional_state_settings_form($form, &$form_state, $instance) {
 
     $new_state['trigger_state-' . $new_id]['#options'] = $trigger_states;
     $new_state['trigger_state-' . $new_id]['#empty_value'] = '';
+
+    if (!is_null($control_field)) {
+      $control_field_instance = field_info_instance($group['entity_type'], $control_field, $group['bundle']);
+
+      if (in_array($control_field_instance['widget']['type'], array('options_buttons', 'options_select'))) {
+        $new_state['trigger_value-' . $new_id]['#options'] = list_allowed_values(field_info_field($control_field));
+        $new_state['trigger_value-' . $new_id]['#type'] = 'select';
+      }
+    }
 
     $new_state['delete-' . $new_id] = array(
       '#prefix' => '<td>',
