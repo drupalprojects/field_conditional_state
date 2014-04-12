@@ -97,6 +97,11 @@ function _field_conditional_state_get_element_parents($widget_type) {
       $paths['field_data'] = array();
       break;
 
+    case 'video_embed_field_video':
+      $paths['actual_element'] = array('video_url');
+      $paths['field_data'] = array();
+      break;
+
     default:
       // entityreference_autocomplete_tags, options_buttons, options_onoff,
       // options_select, taxonomy_autocomplete, text_textarea
@@ -130,6 +135,7 @@ function field_conditional_state_control_field_is_supported($widget = FALSE) {
     'text_textarea',
     'text_textfield',
     'url_external',
+    'video_embed_field_video',
   );
   if (!$widget) {
     return $whitelist;
@@ -201,6 +207,7 @@ function _field_conditional_state_get_field_states($type) {
     case 'text_textarea':
     case 'text_textfield':
     case 'url_external':
+    case 'video_embed_field_video':
       unset($states['checked']);
       unset($states['unchecked']);
       break;
@@ -257,6 +264,7 @@ function _field_conditional_state_get_trigger_states($type) {
     case 'taxonomy_autocomplete':
     case 'text_textfield':
     case 'url_external':
+    case 'video_embed_field_video':
       unset($states_triggerable['checked']);
       unset($states_triggerable['unchecked']);
       break;
