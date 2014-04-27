@@ -89,6 +89,7 @@ function _field_conditional_state_get_element_settings($widget_type) {
       $paths['actual_element'] = array(0, 'upload');
       $paths['field_data'] = array();
       $paths['field_data'][] = 0;
+      $paths['reprocess_from_root'] = TRUE;
       break;
 
     case 'starrating_rating_widget':
