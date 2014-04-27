@@ -65,8 +65,14 @@ function _field_conditional_state_get_conditional_states($entity_type, $bundle, 
  *   -actual_element: "Path" to the actual input/select element within the array
  *   -field_data: Path to the fields data (#entity_type, #bundle, #field_name)
  */
-function _field_conditional_state_get_element_parents($widget_type) {
-  $paths = array('actual_element' => array(), 'field_data' => array());
+function _field_conditional_state_get_element_settings($widget_type) {
+  $paths = array(
+    'actual_element' => array(),
+    'field_data' => array(),
+    // If reprocess_from_root is set to true, the field will be reprocessed
+    // during the after_build phase of the form root.
+    'reprocess_from_root' => FALSE,
+  );
   switch ($widget_type) {
     case 'entityreference_autocomplete':
       $paths['actual_element'] = array('target_id');
@@ -85,11 +91,16 @@ function _field_conditional_state_get_element_parents($widget_type) {
       $paths['field_data'][] = 0;
       break;
 
-    case 'number':
     case 'starrating_rating_widget':
+      $paths['actual_element'] = array('value');
+      $paths['field_data'] = array('value');
+      break;
+
+    case 'number':
     case 'text_textfield':
       $paths['actual_element'] = array('value');
       $paths['field_data'] = array('value');
+      $paths['reprocess_from_root'] = TRUE;
       break;
 
     case 'url_external':
@@ -304,9 +315,9 @@ function field_conditional_state_element_after_build($element, &$form_state) {
 
     // Get the location of the actual input element
     // and the location of the field information (#entity_type, etc).
-    $element_parents = _field_conditional_state_get_element_parents($element['#field_conditional_state_widget_type']);
-    $actual_element = &drupal_array_get_nested_value($element, $element_parents['actual_element']);
-    $field_data = drupal_array_get_nested_value($element, $element_parents['field_data']);
+    $element_settings = _field_conditional_state_get_element_settings($element['#field_conditional_state_widget_type']);
+    $actual_element = &drupal_array_get_nested_value($element, $element_settings['actual_element']);
+    $field_data = drupal_array_get_nested_value($element, $element_settings['field_data']);
 
     // Set the #pre_render callbacks based on the active states for the element.
     // For the top level ($element), if a visible/invisible state is active
@@ -329,22 +340,34 @@ function field_conditional_state_element_after_build($element, &$form_state) {
 
     // Add the #pre_render callbacks.
     if ($visibility_state_active) {
-      if (empty($element['#pre_render'])) {
-        $element['#pre_render'] = array();
+      if ($element_settings['reprocess_from_root']) {
+        $actions = array(
+          'path' => array($element['#array_parents'][0]),
+          'set_pre_render' => '_field_conditional_state_add_visibility_states',
+          'field_name' => $field_data['#field_name'],
+        );
+        _field_conditional_state_set_form_root_actions($actions);
       }
-      $element['#pre_render'][] = '_field_conditional_state_add_visibility_states';
-      $element['#entity_type'] = $field_data['#entity_type'];
-      $element['#bundle'] = $field_data['#bundle'];
-      $element['#field_name'] = $field_data['#field_name'];
+      else {
+        if (empty($element['#pre_render'])) {
+          $element['#pre_render'] = array();
+        }
+        $element['#pre_render'][] = '_field_conditional_state_add_visibility_states';
+        $element['#field_conditional_state'] = array();
+        $element['#field_conditional_state']['entity_type'] = $field_data['#entity_type'];
+        $element['#field_conditional_state']['bundle'] = $field_data['#bundle'];
+        $element['#field_conditional_state']['field_name'] = $field_data['#field_name'];
+      }
     }
     if ($direct_state_active) {
       if (empty($actual_element['#pre_render'])) {
         $actual_element['#pre_render'] = array();
       }
       $actual_element['#pre_render'][] = '_field_conditional_state_add_direct_states';
-      $actual_element['#entity_type'] = $field_data['#entity_type'];
-      $actual_element['#bundle'] = $field_data['#bundle'];
-      $actual_element['#field_name'] = $field_data['#field_name'];
+      $actual_element['#field_conditional_state'] = array();
+      $actual_element['#field_conditional_state']['entity_type'] = $field_data['#entity_type'];
+      $actual_element['#field_conditional_state']['bundle'] = $field_data['#bundle'];
+      $actual_element['#field_conditional_state']['field_name'] = $field_data['#field_name'];
     }
 
     if (field_conditional_state_control_field_is_supported($element['#field_conditional_state_widget_type'])) {
@@ -356,12 +379,21 @@ function field_conditional_state_element_after_build($element, &$form_state) {
 }
 
 /**
+ * Collects actions that have to be executed on the root level of the form.
+ */
+function _field_conditional_state_set_form_root_actions($actions) {
+  $data = &drupal_static(__FUNCTION__, array());
+  $data[] = $actions;
+}
+
+/**
  * Pre-render callback.
  *
  * Adds the #states visible and invisible to the element
  */
 function _field_conditional_state_add_visibility_states($element) {
-  $states = _field_conditional_state_get_conditional_states($element['#entity_type'], $element['#bundle'], $element['#field_name']);
+  $fcs_data = $element['#field_conditional_state'];
+  $states = _field_conditional_state_get_conditional_states($fcs_data['entity_type'], $fcs_data['bundle'], $fcs_data['field_name']);
   _field_conditional_state_build_states_array($element, $states, array('visible', 'invisible'));
 
   return $element;
@@ -373,7 +405,8 @@ function _field_conditional_state_add_visibility_states($element) {
  * Adds the #states enabled, disabled, required and optional to the element
  */
 function _field_conditional_state_add_direct_states($element) {
-  $states = _field_conditional_state_get_conditional_states($element['#entity_type'], $element['#bundle'], $element['#field_name']);
+  $fcs_data = $element['#field_conditional_state'];
+  $states = _field_conditional_state_get_conditional_states($fcs_data['entity_type'], $fcs_data['bundle'], $fcs_data['field_name']);
   $state_types = array(
     'enabled',
     'disabled',
@@ -513,6 +546,44 @@ function field_conditional_state_field_widget_form_alter(&$element, &$form_state
     $element['#after_build'][] = 'field_conditional_state_element_after_build';
     $element['#field_conditional_state_widget_type'] = $context['instance']['widget']['type'];
   }
+}
+
+/**
+ * Implements hook_form_alter().
+ */
+function field_conditional_state_form_alter(&$form, &$form_state, $form_id) {
+  if (isset($form['#entity_type']) && isset($form['#bundle'])) {
+    if (!isset($form['#after_build'])) {
+      $form['#after_build'] = array();
+    }
+    $form['#after_build'][] = '_field_conditional_state_form_after_build';
+  }
+}
+
+/**
+ * After build callback for the whole form.
+ *
+ * Processes actions for elements that can't be done within
+ * field_conditional_state_element_after_build.
+ */
+function _field_conditional_state_form_after_build($form, $form_state) {
+  $actions = drupal_static('_field_conditional_state_set_form_root_actions', array());
+  foreach ($actions as $action) {
+    $element = &drupal_array_get_nested_value($form, $action['path']);
+
+    if (isset($action['set_pre_render'])) {
+      if (!isset($element['#pre_render'])) {
+        $element['#pre_render'] = array();
+      }
+      $element['#pre_render'][] = $action['set_pre_render'];
+      $element['#field_conditional_state'] = array(
+        'entity_type' => $form['#entity_type'],
+        'bundle' => $form['#bundle'],
+        'field_name' => $action['field_name'],
+      );
+    }
+  }
+  return $form;
 }
 
 /**
