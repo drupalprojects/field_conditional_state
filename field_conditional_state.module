@@ -74,6 +74,12 @@ function _field_conditional_state_get_element_settings($widget_type) {
     'reprocess_from_root' => FALSE,
   );
   switch ($widget_type) {
+    case 'enfield_widget':
+      $paths['actual_element'] = array('fid');
+      $paths['field_data'] = array('fid');
+      $paths['reprocess_from_root'] = TRUE;
+      break;
+    
     case 'entityreference_autocomplete':
       $paths['actual_element'] = array('target_id');
       $paths['field_data'] = array('target_id');
@@ -136,6 +142,7 @@ function _field_conditional_state_get_element_settings($widget_type) {
 function field_conditional_state_control_field_is_supported($widget = FALSE) {
   $whitelist = array(
     'email_textfield',
+    'enfield_widget',
     'entityreference_autocomplete',
     'entityreference_autocomplete_tags',
     'file_generic',
@@ -232,6 +239,7 @@ function _field_conditional_state_get_field_states($type) {
 
   switch ($type) {
     case 'email_textfield':
+    case 'enfield_widget':
     case 'entityreference_autocomplete':
     case 'entityreference_autocomplete_tags':
     case 'file_generic':
@@ -286,6 +294,7 @@ function _field_conditional_state_get_trigger_states($type) {
       break;
 
     case 'email_textfield':
+    case 'enfield_widget':
     case 'entityreference_autocomplete':
     case 'entityreference_autocomplete_tags':
     case 'number':
