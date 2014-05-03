@@ -167,9 +167,11 @@ function field_conditional_state_settings_form($form, &$form_state, $instance) {
 
       $control_field_instance = field_info_instance($group['entity_type'], $control_field, $group['bundle']);
 
-      if (in_array($control_field_instance['widget']['type'], array('options_buttons', 'options_select'))) {
+      if (in_array($control_field_instance['widget']['type'], field_conditional_state_multi_trigger_value_is_supported())) {
         $new_state['trigger_value-' . $state['id']]['#options'] = list_allowed_values(field_info_field($control_field));
         $new_state['trigger_value-' . $state['id']]['#type'] = 'select';
+        $new_state['trigger_value-' . $state['id']]['#multiple'] = TRUE;
+        $state['trigger_value'] = unserialize($state['trigger_value']);
       }
 
       $new_state['trigger_value-' . $state['id']]['#default_value'] = $state['trigger_value'];
@@ -198,9 +200,10 @@ function field_conditional_state_settings_form($form, &$form_state, $instance) {
     if (!is_null($control_field)) {
       $control_field_instance = field_info_instance($group['entity_type'], $control_field, $group['bundle']);
 
-      if (in_array($control_field_instance['widget']['type'], array('options_buttons', 'options_select'))) {
+      if (in_array($control_field_instance['widget']['type'], field_conditional_state_multi_trigger_value_is_supported())) {
         $new_state['trigger_value-' . $new_id]['#options'] = list_allowed_values(field_info_field($control_field));
         $new_state['trigger_value-' . $new_id]['#type'] = 'select';
+        $new_state['trigger_value-' . $new_id]['#multiple'] = TRUE;
       }
     }
 
@@ -275,6 +278,11 @@ function field_conditional_state_settings_form_submit($form, $form_state) {
     );
     if ($values['trigger_state-' . $id] == 'value' || $values['trigger_state-' . $id] == '!value') {
       $fields['trigger_value'] = $values['trigger_value-' . $id];
+
+      // Serialize trigger values of multiselect fields.
+      if (is_array($fields['trigger_value'])) {
+        $fields['trigger_value'] = serialize($fields['trigger_value']);
+      }
     }
 
     db_update('field_conditional_state')
@@ -288,6 +296,11 @@ function field_conditional_state_settings_form_submit($form, $form_state) {
       $trigger_value = 1;
       if ($values['trigger_state-new-' . $id] == 'value' || $values['trigger_state-new-' . $id] == '!value') {
         $trigger_value = $values['trigger_value-new-' . $id];
+
+        // Serialize trigger values of multiselect fields.
+        if (is_array($trigger_value)) {
+          $trigger_value = serialize($trigger_value);
+        }
       }
 
       db_insert('field_conditional_state')

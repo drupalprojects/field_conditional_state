@@ -279,3 +279,28 @@ function field_conditional_state_update_7201() {
   ->condition('permission', 'administer field conditional states')
   ->execute();
 }
+
+/**
+ * Converts trigger value data of multivalue fields.
+ */
+function field_conditional_state_update_7202() {
+  module_load_include('module', 'field_conditional_state');
+  $query = db_select('field_conditional_state', 'f')
+  ->fields('f', array('id', 'control_field', 'trigger_value'))
+  ->fields('g', array('entity_type', 'bundle'))
+  ->where("f.trigger_state = 'value' OR f.trigger_state = '!value'");
+
+  $query->leftJoin('field_conditional_states_group', 'g', 'g.group_id = f.group_id');
+  $data = $query->execute();
+
+  while ($state = $data->fetchAssoc()) {
+    $instance = field_info_instance($state['entity_type'], $state['control_field'], $state['bundle']);
+
+    if (field_conditional_state_multi_trigger_value_is_supported($instance['widget']['type'])) {
+      db_update('field_conditional_state')
+      ->fields(array('trigger_value' => serialize((array)$state['trigger_value'])))
+      ->condition('id', $state['id'])
+      ->execute();
+    }
+  }
+}

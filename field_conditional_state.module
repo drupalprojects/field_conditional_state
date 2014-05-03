@@ -189,6 +189,29 @@ function field_conditional_state_controled_field_is_supported($widget = FALSE) {
 }
 
 /**
+ * Checks whether a widget supports multiple trigger values within one state.
+ *
+ * @param string $widget
+ *   a widget name to check for support
+ *
+ * @return array/boolean
+ *   the whitelist as array if no explicit widget is given as argument OR
+ *   a boolean indicating the support of the given widget
+ */
+function field_conditional_state_multi_trigger_value_is_supported($widget = FALSE) {
+  $list = array(
+    'options_buttons',
+    'options_select',
+  );
+  if (!$widget) {
+    return $list;
+  }
+  else {
+    return in_array($widget, $list);
+  }
+}
+
+/**
  * Returns the available states for a given field type.
  *
  * @param string $type
@@ -633,23 +656,36 @@ function _field_conditional_state_build_states_array(&$element, $groups, $state_
           continue;
         }
         $control_id = $ids[$control_key];
+        $triggers = array();
         if ($state['trigger_state'] == 'value' || $state['trigger_state'] == '!value') {
-          $trigger = array($state['trigger_state'] => $state['trigger_value']);
+
+          // If we have a multi trigger value here, we create a state per value.
+          $trigger_values = @unserialize($state['trigger_value']);
+          if ($trigger_values !== FALSE) {
+            foreach ($trigger_values as $val) {
+              $triggers[] = array($state['trigger_state'] => $val);
+            }
+          }
+          else {
+            $triggers[] = array($state['trigger_state'] => $state['trigger_value']);
+          }
         }
         else {
-          $trigger = array($state['trigger_state'] => TRUE);
+          $triggers[] = array($state['trigger_state'] => TRUE);
         }
 
-        if ($group['type'] == 'and') {
-          // Add condition to the top level.
-          $current['#' . $control_id] = $trigger;
-        }
-        else {
-          // For or/xor conditions $current already points to the second level,
-          // but each single condition gets its own third level
-          // within the array.
-          $tmp = &$current[];
-          $tmp['#' . $control_id] = $trigger;
+        foreach ($triggers as $trigger) {
+          if ($group['type'] == 'and') {
+            // Add condition to the top level.
+            $current['#' . $control_id] = $trigger;
+          }
+          else {
+            // For (x)or conditions $current already points to the second level,
+            // but each single condition gets its own third level
+            // within the array.
+            $tmp = &$current[];
+            $tmp['#' . $control_id] = $trigger;
+          }
         }
       }
     }
