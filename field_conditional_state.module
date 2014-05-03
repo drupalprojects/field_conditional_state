@@ -77,6 +77,7 @@ function _field_conditional_state_get_element_settings($widget_type) {
     case 'entityreference_autocomplete':
       $paths['actual_element'] = array('target_id');
       $paths['field_data'] = array('target_id');
+      $paths['reprocess_from_root'] = TRUE;
       break;
 
     case 'email_textfield':
@@ -231,6 +232,7 @@ function _field_conditional_state_get_field_states($type) {
 
   switch ($type) {
     case 'email_textfield':
+    case 'entityreference_autocomplete':
     case 'entityreference_autocomplete_tags':
     case 'file_generic':
     case 'image_image':
@@ -245,13 +247,6 @@ function _field_conditional_state_get_field_states($type) {
     case 'video_embed_field_video':
       unset($states['checked']);
       unset($states['unchecked']);
-      break;
-
-    case 'entityreference_autocomplete':
-      unset($states['checked']);
-      unset($states['unchecked']);
-      unset($states['visible']);
-      unset($states['invisible']);
       break;
 
     case 'options_onoff':
