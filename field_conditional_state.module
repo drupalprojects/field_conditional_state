@@ -62,12 +62,13 @@ function _field_conditional_state_get_conditional_states($entity_type, $bundle, 
  * 
  * @return array
  *   array with two keys:
- *   -actual_element: "Path" to the actual input/select element within the array
+ *   -form_elements: "Path" to the actual input/select elements within the array
+ *      The first element here is used as actual trigger element.
  *   -field_data: Path to the fields data (#entity_type, #bundle, #field_name)
  */
 function _field_conditional_state_get_element_settings($widget_type) {
-  $paths = array(
-    'actual_element' => array(),
+  $settings = array(
+    'form_elements' => array(),
     'field_data' => array(),
     // If reprocess_from_root is set to true, the field will be reprocessed
     // during the after_build phase of the form root.
@@ -75,58 +76,59 @@ function _field_conditional_state_get_element_settings($widget_type) {
   );
   switch ($widget_type) {
     case 'enfield_widget':
-      $paths['actual_element'] = array('fid');
-      $paths['field_data'] = array('fid');
-      $paths['reprocess_from_root'] = TRUE;
+      $settings['form_elements'][] = array('fid');
+      $settings['field_data'] = array('fid');
+      $settings['reprocess_from_root'] = TRUE;
       break;
-    
+
     case 'entityreference_autocomplete':
-      $paths['actual_element'] = array('target_id');
-      $paths['field_data'] = array('target_id');
-      $paths['reprocess_from_root'] = TRUE;
+      $settings['form_elements'][] = array('target_id');
+      $settings['field_data'] = array('target_id');
+      $settings['reprocess_from_root'] = TRUE;
       break;
 
     case 'email_textfield':
-      $paths['actual_element'] = array('email');
-      $paths['field_data'] = array();
+      $settings['form_elements'][] = array('email');
+      $settings['field_data'] = array();
       break;
 
     case 'file_generic':
     case 'image_image':
-      $paths['actual_element'] = array(0, 'upload');
-      $paths['field_data'] = array();
-      $paths['field_data'][] = 0;
-      $paths['reprocess_from_root'] = TRUE;
+      $settings['form_elements'][] = array(0, 'upload');
+      $settings['field_data'] = array();
+      $settings['field_data'][] = 0;
+      $settings['reprocess_from_root'] = TRUE;
       break;
 
     case 'starrating_rating_widget':
-      $paths['actual_element'] = array('value');
-      $paths['field_data'] = array('value');
+      $settings['form_elements'][] = array('value');
+      $settings['field_data'] = array('value');
       break;
 
     case 'number':
     case 'text_textfield':
-      $paths['actual_element'] = array('value');
-      $paths['field_data'] = array('value');
-      $paths['reprocess_from_root'] = TRUE;
+      $settings['form_elements'][] = array('value');
+      $settings['field_data'] = array('value');
+      $settings['reprocess_from_root'] = TRUE;
       break;
 
     case 'url_external':
-      $paths['actual_element'] = array('value');
-      $paths['field_data'] = array();
+      $settings['form_elements'][] = array('value');
+      $settings['field_data'] = array();
       break;
 
     case 'video_embed_field_video':
-      $paths['actual_element'] = array('video_url');
-      $paths['field_data'] = array();
+      $settings['form_elements'][] = array('video_url');
+      $settings['field_data'] = array();
       break;
 
     default:
       // entityreference_autocomplete_tags, options_buttons, options_onoff,
       // options_select, taxonomy_autocomplete, text_textarea
+      $settings['form_elements'][] = array();
   }
 
-  return $paths;
+  return $settings;
 }
 
 /**
@@ -344,12 +346,16 @@ function field_conditional_state_element_after_build($element, &$form_state) {
     // Get the location of the actual input element
     // and the location of the field information (#entity_type, etc).
     $element_settings = _field_conditional_state_get_element_settings($element['#field_conditional_state_widget_type']);
-    $actual_element = &drupal_array_get_nested_value($element, $element_settings['actual_element']);
+
+    $form_elements = array();
+    foreach ($element_settings['form_elements'] as $path) {
+      $form_elements[] = &drupal_array_get_nested_value($element, $path);
+    }
     $field_data = drupal_array_get_nested_value($element, $element_settings['field_data']);
 
     // Set the #pre_render callbacks based on the active states for the element.
     // For the top level ($element), if a visible/invisible state is active
-    // and for the actual element ($actual_element), if another state is active.
+    // and for the actual elements ($form_elements), if another state is active.
     $states = _field_conditional_state_get_conditional_states($field_data['#entity_type'], $field_data['#bundle'], $field_data['#field_name']);
     $visibility_state_active = FALSE;
     $direct_state_active = FALSE;
@@ -388,18 +394,20 @@ function field_conditional_state_element_after_build($element, &$form_state) {
       }
     }
     if ($direct_state_active) {
-      if (empty($actual_element['#pre_render'])) {
-        $actual_element['#pre_render'] = array();
+      foreach ($form_elements as &$form_element) {
+        if (empty($form_element['#pre_render'])) {
+          $form_element['#pre_render'] = array();
+        }
+        $form_element['#pre_render'][] = '_field_conditional_state_add_direct_states';
+        $form_element['#field_conditional_state'] = array();
+        $form_element['#field_conditional_state']['entity_type'] = $field_data['#entity_type'];
+        $form_element['#field_conditional_state']['bundle'] = $field_data['#bundle'];
+        $form_element['#field_conditional_state']['field_name'] = $field_data['#field_name'];
       }
-      $actual_element['#pre_render'][] = '_field_conditional_state_add_direct_states';
-      $actual_element['#field_conditional_state'] = array();
-      $actual_element['#field_conditional_state']['entity_type'] = $field_data['#entity_type'];
-      $actual_element['#field_conditional_state']['bundle'] = $field_data['#bundle'];
-      $actual_element['#field_conditional_state']['field_name'] = $field_data['#field_name'];
     }
 
     if (field_conditional_state_control_field_is_supported($element['#field_conditional_state_widget_type'])) {
-      $ids[$field_data['#entity_type'] . '__' . $field_data['#bundle'] . '__' . $field_data['#field_name']] = $actual_element['#id'];
+      $ids[$field_data['#entity_type'] . '__' . $field_data['#bundle'] . '__' . $field_data['#field_name']] = $form_elements[0]['#id'];
     }
   }
 
