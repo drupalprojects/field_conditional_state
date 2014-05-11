@@ -1,0 +1,35 @@
+<?php
+/**
+* Consistency test cases for Field Conditional State
+*/
+class FieldConditionalStateTestCase extends DrupalWebTestCase {
+ 
+
+  /**
+   * Implements getInfo().
+   */
+  public static function getInfo() {
+    return array (
+      'name' => t('Test Cases'),
+      'description' => t('Tests for Field Conditional State.'),
+      'group' => t('Field Conditional State'),
+    );
+  }
+
+  public function testFieldSettings() {
+    $control_fields = field_conditional_state_control_field_is_supported();
+
+    foreach ($control_fields as $control_field) {
+      $trigger_states = _field_conditional_state_get_trigger_states($control_field);
+      $this->assertTrue(is_array($trigger_states) && !empty($trigger_states), $control_field . ' is correctly configured as control field.');
+    }
+
+    $controled_fields = field_conditional_state_controled_field_is_supported();
+
+    foreach ($controled_fields as $controled_field) {
+      $states = _field_conditional_state_get_field_states($controled_field);
+      $this->assertTrue(is_array($states) && !empty($states), $controled_field . ' is correctly configured as target field.');
+    }
+  }
+}
+?>
