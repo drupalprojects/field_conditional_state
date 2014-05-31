@@ -16,6 +16,10 @@ class FieldConditionalStateTestCase extends DrupalWebTestCase {
     );
   }
 
+  public function setUp() {
+    parent::setUp('field_conditional_state');
+  }
+
   public function testFieldSettings() {
     $control_fields = field_conditional_state_control_field_is_supported();
 
