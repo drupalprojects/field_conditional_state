@@ -168,7 +168,7 @@ function field_conditional_state_settings_form($form, &$form_state, $instance) {
       $control_field_instance = field_info_instance($group['entity_type'], $control_field, $group['bundle']);
 
       if (in_array($control_field_instance['widget']['type'], field_conditional_state_multi_trigger_value_is_supported())) {
-        $new_state['trigger_value-' . $state['id']]['#options'] = list_allowed_values(field_info_field($control_field));
+        $new_state['trigger_value-' . $state['id']]['#options'] = _field_conditional_states_allowed_values(field_info_field($control_field));
         $new_state['trigger_value-' . $state['id']]['#type'] = 'select';
         $new_state['trigger_value-' . $state['id']]['#multiple'] = TRUE;
         $state['trigger_value'] = unserialize($state['trigger_value']);
@@ -201,7 +201,7 @@ function field_conditional_state_settings_form($form, &$form_state, $instance) {
       $control_field_instance = field_info_instance($group['entity_type'], $control_field, $group['bundle']);
 
       if (in_array($control_field_instance['widget']['type'], field_conditional_state_multi_trigger_value_is_supported())) {
-        $new_state['trigger_value-' . $new_id]['#options'] = list_allowed_values(field_info_field($control_field));
+        $new_state['trigger_value-' . $new_id]['#options'] = _field_conditional_states_allowed_values(field_info_field($control_field));
         $new_state['trigger_value-' . $new_id]['#type'] = 'select';
         $new_state['trigger_value-' . $new_id]['#multiple'] = TRUE;
       }

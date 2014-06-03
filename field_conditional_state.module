@@ -710,6 +710,13 @@ function _field_conditional_state_build_states_array(&$element, $groups, $state_
 }
 
 /**
+ * Returns the allowed values for fields using options_select.
+ */
+function _field_conditional_states_allowed_values($field) {
+  return call_user_func($field['module'] . '_allowed_values', $field);
+}
+
+/**
  * Implements hook_form_FORMID_alter() for field_ui_widget_type_form().
  */
 function field_conditional_state_form_field_ui_widget_type_form_alter(&$form, &$form_state) {
