@@ -127,6 +127,13 @@ function _field_conditional_state_get_element_settings($widget_type) {
       $settings['reprocess_from_root'] = TRUE;
       break;
 
+    case 'text_textarea_with_summary':
+      $settings['form_elements'][] = array('value');
+      $settings['form_elements'][] = array('format');
+      $settings['form_elements'][] = array('summary');
+      $settings['reprocess_from_root'] = TRUE;
+      break;
+
     default:
       // entityreference_autocomplete_tags, options_buttons, options_onoff,
       // options_select, taxonomy_autocomplete
@@ -191,6 +198,7 @@ function field_conditional_state_controled_field_is_supported($widget = FALSE) {
   $controled_only = array(
     'options_buttons',
     'text_textarea',
+    'text_textarea_with_summary',
   );
 
   $whitelist = array_merge($whitelist, $controled_only);
@@ -257,6 +265,7 @@ function _field_conditional_state_get_field_states($type) {
     case 'starrating_rating_widget':
     case 'taxonomy_autocomplete':
     case 'text_textarea':
+    case 'text_textarea_with_summary':
     case 'text_textfield':
     case 'url_external':
     case 'video_embed_field_video':
