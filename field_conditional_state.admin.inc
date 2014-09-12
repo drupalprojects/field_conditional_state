@@ -31,12 +31,14 @@ function field_conditional_state_settings_form($form, &$form_state, $instance) {
   }
   $fcs_states = &$form_state['#field_conditional_state'];
 
-  $fcs_states['possible_states'] = _field_conditional_state_get_field_states($instance['widget']['type']);
+  $settings = _field_conditional_state_get_element_settings($instance['widget']['type']);
 
-  if (!field_conditional_state_controled_field_is_supported($instance['widget']['type']) || empty($fcs_states['possible_states'])) {
-    $form['info'] = array('#markup' => '<p>' . t("The currently selected widget for this field isn't supported by Field Conditional States. Please choose a different widget or create a support request in Field Conditional States issue queue on drupal.org.") . '</p>');
+  if (!field_conditional_state_controled_field_is_supported($instance['widget']['type']) || empty($settings['field_states'])) {
+    $form['info'] = array('#markup' => '<p>' . t("The currently selected widget for this field isn't supported by Field Conditional States. Please choose a different widget or create a support request in the issue queue of the module providing this widget.") . '</p>');
     return $form;
   }
+
+  $fcs_states['possible_states'] = $settings['field_states'];
 
   $fields = field_info_instances($instance['entity_type'], $instance['bundle']);
   $current_field = field_info_field($instance['field_name']);
@@ -162,7 +164,8 @@ function field_conditional_state_settings_form($form, &$form_state, $instance) {
       $new_state['control_field-' . $state['id']]['#default_value'] = $control_field;
       $new_state['control_field-' . $state['id']]['#field_conditional_state_group'] = $group;
 
-      $new_state['trigger_state-' . $state['id']]['#options'] = _field_conditional_state_get_trigger_states($dependees[$control_field]['widget']['type']);
+      $settings = _field_conditional_state_get_element_settings($dependees[$control_field]['widget']['type']);
+      $new_state['trigger_state-' . $state['id']]['#options'] = $settings['trigger_states'];
       $new_state['trigger_state-' . $state['id']]['#default_value'] = $state['trigger_state'];
 
       $control_field_instance = field_info_instance($group['entity_type'], $control_field, $group['bundle']);
@@ -187,14 +190,14 @@ function field_conditional_state_settings_form($form, &$form_state, $instance) {
     $trigger_states = array();
     if (!empty($form_state['values']) && !empty($form_state['values']['control_field-' . $new_id])) {
       $control_field = $form_state['values']['control_field-' . $new_id];
-      $trigger_states = _field_conditional_state_get_trigger_states($dependees[$control_field]['widget']['type']);
+      $settings = _field_conditional_state_get_element_settings($dependees[$control_field]['widget']['type']);
     }
 
     $new_state['control_field-' . $new_id]['#options'] = $dependees_as_options;
     $new_state['control_field-' . $new_id]['#field_conditional_state_group'] = $group;
     $new_state['control_field-' . $new_id]['#empty_value'] = '';
 
-    $new_state['trigger_state-' . $new_id]['#options'] = $trigger_states;
+    $new_state['trigger_state-' . $new_id]['#options'] = $settings['trigger_states'];
     $new_state['trigger_state-' . $new_id]['#empty_value'] = '';
 
     if (!is_null($control_field)) {
