@@ -165,8 +165,19 @@ function field_conditional_state_settings_form($form, &$form_state, $instance) {
       $new_state['control_field-' . $state['id']]['#field_conditional_state_group'] = $group;
 
       $settings = _field_conditional_state_get_element_settings($dependees[$control_field]['widget']['type']);
-      $new_state['trigger_state-' . $state['id']]['#options'] = $settings['trigger_states'];
-      $new_state['trigger_state-' . $state['id']]['#default_value'] = $state['trigger_state'];
+
+      // Check for negation of the trigger state.
+      $trigger_state = $state['trigger_state'];
+      $negated = FALSE;
+      if (substr($trigger_state, 0, 1) == '!') {
+        $trigger_state = substr($trigger_state, 1);
+        $negated = TRUE;
+      }
+
+      $new_state['container_trigger_state']['trigger_state-' . $state['id']]['#options'] = $settings['trigger_states'];
+      $new_state['container_trigger_state']['trigger_state-' . $state['id']]['#default_value'] = $trigger_state;
+
+      $new_state['container_trigger_state']['negate-' . $state['id']]['#default_value'] = $negated;
 
       $control_field_instance = field_info_instance($group['entity_type'], $control_field, $group['bundle']);
 
@@ -197,8 +208,8 @@ function field_conditional_state_settings_form($form, &$form_state, $instance) {
     $new_state['control_field-' . $new_id]['#field_conditional_state_group'] = $group;
     $new_state['control_field-' . $new_id]['#empty_value'] = '';
 
-    $new_state['trigger_state-' . $new_id]['#options'] = $settings['trigger_states'];
-    $new_state['trigger_state-' . $new_id]['#empty_value'] = '';
+    $new_state['container_trigger_state']['trigger_state-' . $new_id]['#options'] = $settings['trigger_states'];
+    $new_state['container_trigger_state']['trigger_state-' . $new_id]['#empty_value'] = '';
 
     if (!is_null($control_field)) {
       $control_field_instance = field_info_instance($group['entity_type'], $control_field, $group['bundle']);
@@ -276,10 +287,10 @@ function field_conditional_state_settings_form_submit($form, $form_state) {
   foreach ($fcs_states['existing_states'] as $id) {
     $fields = array(
       'control_field' => $values['control_field-' . $id],
-      'trigger_state' => $values['trigger_state-' . $id],
+      'trigger_state' => ($values['negate-' . $id] ? '!' : '') . $values['trigger_state-' . $id],
       'trigger_value' => 1,
     );
-    if ($values['trigger_state-' . $id] == 'value' || $values['trigger_state-' . $id] == '!value') {
+    if ($values['trigger_state-' . $id] == 'value') {
       $fields['trigger_value'] = $values['trigger_value-' . $id];
 
       // Serialize trigger values of multiselect fields.
@@ -297,7 +308,7 @@ function field_conditional_state_settings_form_submit($form, $form_state) {
   foreach ($fcs_states['existing_groups'] as $id) {
     if (!empty($values['control_field-new-' . $id]) && !empty($values['trigger_state-new-' . $id])) {
       $trigger_value = 1;
-      if ($values['trigger_state-new-' . $id] == 'value' || $values['trigger_state-new-' . $id] == '!value') {
+      if ($values['trigger_state-new-' . $id] == 'value') {
         $trigger_value = $values['trigger_value-new-' . $id];
 
         // Serialize trigger values of multiselect fields.
@@ -310,7 +321,7 @@ function field_conditional_state_settings_form_submit($form, $form_state) {
         ->fields(array(
           'group_id' => $id,
           'control_field' => $values['control_field-new-' . $id],
-          'trigger_state' => $values['trigger_state-new-' . $id],
+          'trigger_state' => ($values['negate-new-' . $id] ? '!' : '') . $values['trigger_state-new-' . $id],
           'trigger_value' => $trigger_value,
         ))
         ->execute();
@@ -358,11 +369,24 @@ function _field_conditional_state_get_state_default_row($id, $classes = array())
     ),
   );
 
-  $new_state['trigger_state-' . $id] = array(
+  $new_state['container_trigger_state'] = array(
     '#prefix' => '<td ' . drupal_attributes(array('id' => drupal_html_id('trigger_state-' . $id))) . '>',
     '#suffix' => '</td>',
+  );
+
+  $new_state['container_trigger_state']['trigger_state-' . $id] = array(
     '#type' => 'select',
     '#options' => array(),
+  );
+
+  $new_state['container_trigger_state']['negate-' . $id] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Negate'),
+    '#states' => array(
+      'visible' => array(
+        ':input[name="trigger_state-' . check_plain($id) . '"]' => array('!value' => ''),
+      ),
+    ),
   );
 
   $new_state['trigger_value-' . $id] = array(
@@ -371,10 +395,7 @@ function _field_conditional_state_get_state_default_row($id, $classes = array())
     '#type' => 'textfield',
     '#states' => array(
       'visible' => array(
-        array(
-          array(':input[name="trigger_state-' . check_plain($id) . '"]' => array('value' => 'value')),
-          array(':input[name="trigger_state-' . check_plain($id) . '"]' => array('value' => '!value')),
-        ),
+        ':input[name="trigger_state-' . check_plain($id) . '"]' => array('value' => 'value'),
       ),
     ),
   );

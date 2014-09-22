@@ -210,7 +210,6 @@ function _field_conditional_state_create_label_mapping($input) {
     'empty' => t('Empty'),
     'filled' => t('Filled'),
     'value' => t('Value is'),
-    '!value' => t('Value is NOT'),
   );
   $output = array();
   foreach ($input as $val) {
@@ -372,7 +371,7 @@ function _field_conditional_state_get_trigger_states($type) {
     case 'text_textfield':
     case 'url_external':
     case 'video_embed_field_video':
-      $states_triggerable = array('empty', 'filled', 'value', '!value');
+      $states_triggerable = array('empty', 'filled', 'value');
       break;
 
     case 'options_onoff':
