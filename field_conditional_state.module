@@ -556,6 +556,19 @@ function field_conditional_state_menu() {
       }
     }
   }
+  $items['admin/reports/fields/list'] = array(
+    'title' => 'List',
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'weight' => -10,
+  );
+  $items['admin/reports/fields/conditional-states'] = array(
+    'title' => 'Conditional states',
+    'description' => 'Overview of fields on all entity types with a conditional state.',
+    'page callback' => 'field_conditional_state_fields_list',
+    'access arguments' => array('administer field_conditional_state'),
+    'type' => MENU_LOCAL_TASK,
+    'weight' => 0,
+  );
   return $items;
 }
 
@@ -859,4 +872,96 @@ function field_conditional_state_field_delete_instance($instance) {
 
     $delete->execute();
   }
+}
+
+/**
+ * Get list of conditional states for all enabled fields.
+ */
+function field_conditional_state_get_states() {
+  $conditional_states = &drupal_static(__FUNCTION__);
+  if (!isset($conditional_states)) {
+    $conditional_states = array();
+    $groups = db_query("SELECT * FROM {field_conditional_states_group}");
+    foreach ($groups as $group) {
+      $temp_group = (array) $group;
+      $states = db_query("SELECT * FROM {field_conditional_state} WHERE group_id = :gid", array(':gid' => $group->group_id));
+      foreach ($states as $state) {
+        $temp_group['states'][] = (array) $state;
+      }
+      if (isset($temp_group['states'])) {
+        $conditional_states[] = $temp_group;
+      }
+    }
+  }
+  return $conditional_states;
+}
+
+/**
+ * Menu callback; lists all conditional state-enabled fields.
+ */
+function field_conditional_state_fields_list() {
+  $conditional_states = field_conditional_state_get_states();
+  $bundle_info = field_info_bundles();
+
+  // Table headers.
+  $header = array(
+    t('Field name'),
+    t('State'),
+    t('Control fields'),
+    t('Used in'),
+  );
+
+  // Table rows.
+  $rows = array();
+  foreach ($conditional_states as $state) {
+    $temp_row = array();
+
+    // Add field.
+    $temp_row['data'][0] = $state['field_name'];
+
+    // Add state.
+    $temp_row['data'][1] = $state['state'];
+
+    // Add control fields.
+    $temp_row['data'][2]['logic'] = $state['type'];
+    foreach ($state['states'] as $field) {
+      $negated = FALSE;
+      if (substr($field['trigger_state'], 0, 1) == '!') {
+        $negated = TRUE;
+        $field['trigger_state'] = substr($field['trigger_state'], 1);
+      }
+      $value = '';
+      if ($field['trigger_state'] == 'value') {
+        $value = ($negated ? ' != ' : ' = ') . $field['trigger_value'];
+      }
+      else {
+        $value = ' is ' . ($negated ? 'NOT ' : '') . $field['trigger_state'];
+      }
+      $temp_row['data'][2][] = $field['control_field'] . $value;
+    }
+
+    // Add bundle.
+    $admin_path = NULL;
+    if (module_exists('field_ui')) {
+      $admin_path = _field_ui_bundle_admin_path($state['entity_type'], $state['bundle']);
+    }
+    $temp_row['data'][3] = $admin_path ? l($bundle_info[$state['entity_type']][$state['bundle']]['label'], $admin_path . '/fields/' . $state['field_name'] . '/field_conditional_state') : $bundle_info[$state['entity_type']][$state['bundle']]['label'];
+
+    $rows[] = $temp_row;
+  }
+
+  // Collect all control fields into a string.
+  foreach ($rows as $id => $cell) {
+    $logic = drupal_strtoupper($cell['data'][2]['logic']);
+    unset($cell['data'][2]['logic']);
+    $rows[$id]['data'][2] = implode('<br />' . $logic . '<br />', $cell['data'][2]);
+  }
+
+  $output = theme('table', array(
+    'header' => $header,
+    'rows' => $rows,
+    'empty' => t('No fields have conditional states yet.'),
+  ));
+
+  return $output;
 }
