@@ -935,12 +935,18 @@ function field_conditional_state_fields_list() {
       }
       $value = '';
       if ($field['trigger_state'] == 'value') {
-        $value = ($negated ? ' != ' : ' = ') . $field['trigger_value'];
+        if ($trigger_value = @unserialize($field['trigger_value'])) {
+          foreach ($trigger_value as $value) {
+            $temp_row['data'][2][] = $field['control_field'] . ($negated ? ' != ' : ' = ') . $value;
+          }
+        }
+        else {
+          $temp_row['data'][2][] = $field['control_field'] . ($negated ? ' != ' : ' = ') . $field['trigger_value'];
+        }
       }
       else {
-        $value = ' is ' . ($negated ? 'NOT ' : '') . $field['trigger_state'];
+        $temp_row['data'][2][] = $field['control_field'] . ' is ' . ($negated ? 'NOT ' : '') . $field['trigger_state'];
       }
-      $temp_row['data'][2][] = $field['control_field'] . $value;
     }
 
     // Add bundle.

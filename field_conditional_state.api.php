@@ -36,6 +36,15 @@
  *   - trigger_states: (optional) An array of control states that can be
  *     used by widget. Valid values can be found here:
  *     https://api.drupal.org/api/drupal/includes%21common.inc/function/drupal_process_states/7
+ *
+ *   - trigger_value_widget: (optional) A callback function returning a
+ *     form element to enter trigger values in the settings form. By
+ *     default this is just a textfield.
+ *
+ *   - trigger_value_submit: (optional) A callback function which
+ *     transforms the values entered in the trigger_value_widget into a
+ *     string that can be saved as trigger value. For multivalue widgets
+ *     this function may return an array of trigger values.
  */
 function hook_field_conditional_state_settings_alter(&$settings) {
 
