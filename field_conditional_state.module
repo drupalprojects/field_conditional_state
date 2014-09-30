@@ -81,6 +81,8 @@ function _field_conditional_state_get_element_settings($widget_type = NULL) {
       'reprocess_from_root' => FALSE,
       'field_states' => array(),
       'trigger_states' => array(),
+      'trigger_value_widget' => '_field_conditional_state_default_trigger_value_widget',
+      'trigger_value_submit' => '_field_conditional_state_default_trigger_value_submit',
     );
 
     $settings['enfield_widget'] = $settings_default;
@@ -92,6 +94,9 @@ function _field_conditional_state_get_element_settings($widget_type = NULL) {
     $settings['entityreference_autocomplete']['form_elements'][] = array('target_id');
     $settings['entityreference_autocomplete']['field_data'] = array('target_id');
     $settings['entityreference_autocomplete']['reprocess_from_root'] = TRUE;
+
+    $settings['entityreference_autocomplete_tags'] = $settings_default;
+    $settings['entityreference_autocomplete_tags']['form_elements'][] = array();
 
     $settings['email_textfield'] = $settings_default;
     $settings['email_textfield']['form_elements'][] = array('email');
@@ -116,6 +121,17 @@ function _field_conditional_state_get_element_settings($widget_type = NULL) {
     $settings['number']['field_data'] = array('value');
     $settings['number']['reprocess_from_root'] = TRUE;
 
+    $settings['options_buttons'] = $settings_default;
+    $settings['options_buttons']['form_elements'][] = array();
+
+    $settings['options_onoff'] = $settings_default;
+    $settings['options_onoff']['form_elements'][] = array();
+
+    $settings['options_select'] = $settings_default;
+    $settings['options_select']['form_elements'][] = array();
+    $settings['options_select']['trigger_value_widget'] = '_field_conditional_state_select_trigger_value_widget';
+    $settings['options_select']['trigger_value_submit'] = '_field_conditional_state_select_trigger_value_submit';
+
     $settings['text_textfield'] = $settings_default;
     $settings['text_textfield']['form_elements'][] = array('value');
     $settings['text_textfield']['field_data'] = array('value');
@@ -128,6 +144,9 @@ function _field_conditional_state_get_element_settings($widget_type = NULL) {
     $settings['video_embed_field_video'] = $settings_default;
     $settings['video_embed_field_video']['form_elements'][] = array('video_url');
     $settings['video_embed_field_video']['field_data'] = array();
+
+    $settings['taxonomy_autocomplete'] = $settings_default;
+    $settings['taxonomy_autocomplete']['form_elements'][] = array();
 
     $settings['text_textarea'] = $settings_default;
     $settings['text_textarea']['form_elements'][] = array('value');
@@ -142,22 +161,6 @@ function _field_conditional_state_get_element_settings($widget_type = NULL) {
     foreach ($settings as $field => &$data) {
       $data['field_states'] = _field_conditional_state_get_field_states($field);
       $data['trigger_states'] = _field_conditional_state_get_trigger_states($field);
-    }
-
-    // These widgets dont need any special settings,
-    // so we can apply them within a loop for all of them.
-    $default_fields = array(
-      'entityreference_autocomplete_tags',
-      'options_buttons',
-      'options_onoff',
-      'options_select',
-      'taxonomy_autocomplete',
-    );
-    foreach ($default_fields as $field) {
-      $settings[$field] = $settings_default;
-      $settings[$field]['form_elements'][] = array();
-      $settings[$field]['field_states'] = _field_conditional_state_get_field_states($field);
-      $settings[$field]['trigger_states'] = _field_conditional_state_get_trigger_states($field);
     }
 
     drupal_alter('field_conditional_state_settings', $settings);

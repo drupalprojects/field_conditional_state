@@ -40,25 +40,13 @@ function field_conditional_state_settings_form($form, &$form_state, $instance) {
 
   $fcs_states['possible_states'] = $settings['field_states'];
 
-  $fields = field_info_instances($instance['entity_type'], $instance['bundle']);
+  $bundle_instances = field_info_instances($instance['entity_type'], $instance['bundle']);
   $current_field = field_info_field($instance['field_name']);
 
-  $dependees = array();
   $dependees_as_options = array();
-  foreach ($fields as $name => $data) {
+  foreach ($bundle_instances as $name => $data) {
     if ($name != $instance['field_name']) {
-      $dependees[$name] = field_info_instance($instance['entity_type'], $data['field_name'], $instance['bundle']);
-
-      // We have to include invalid control fields here, to avoid errors
-      // with states using an invalid control field (legacy reasons).
-      // We'll handle them later in this function.
-      if (!field_conditional_state_control_field_is_supported($data['widget']['type'])) {
-        $dependees[$name]['#field_conditional_state_invalid'] = TRUE;
-      }
-      else {
-        // By default we only want to show valid control fields.
-        $dependees_as_options[$name] = $data['label'];
-      }
+      $dependees_as_options[$name] = $data['label'];
     }
   }
 
@@ -100,7 +88,6 @@ function field_conditional_state_settings_form($form, &$form_state, $instance) {
 
   }
 
-  $invalid_states_count = 0;
   $groups = _field_conditional_state_get_conditional_states($instance['entity_type'], $instance['bundle'], $instance['field_name']);
   foreach ($groups as $group) {
     $fcs_states['existing_groups'][] = $group['group_id'];
@@ -141,30 +128,18 @@ function field_conditional_state_settings_form($form, &$form_state, $instance) {
       $fcs_states['existing_states'][] = $state['id'];
       $control_field = $state['control_field'];
 
-      $options = $dependees_as_options;
-      $row_classes = array($bg);
-      // If the control field is invalid, add it to the options
-      // and mark the line as invalid.
-      if (isset($dependees[$control_field]['#field_conditional_state_invalid']) &&
-        $dependees[$control_field]['#field_conditional_state_invalid']) {
-        $options[$control_field] = $fields[$control_field]['label'];
-
-        $row_classes[0] = 'field_conditional_state_invalid_state';
-        $invalid_states_count++;
-      }
-
       $new_state = &$new_row['states'][$state['id']];
-      $new_state = _field_conditional_state_get_state_default_row($state['id'], $row_classes);
+      $new_state = _field_conditional_state_get_state_default_row($state['id'], array($bg));
 
       if (!empty($form_state['values'])) {
         $control_field = $form_state['values']['control_field-' . $state['id']];
       }
 
-      $new_state['control_field-' . $state['id']]['#options'] = $options;
+      $new_state['control_field-' . $state['id']]['#options'] = $dependees_as_options;
       $new_state['control_field-' . $state['id']]['#default_value'] = $control_field;
       $new_state['control_field-' . $state['id']]['#field_conditional_state_group'] = $group;
 
-      $settings = _field_conditional_state_get_element_settings($dependees[$control_field]['widget']['type']);
+      $settings = _field_conditional_state_get_element_settings($bundle_instances[$control_field]['widget']['type']);
 
       // Check for negation of the trigger state.
       $trigger_state = $state['trigger_state'];
@@ -179,16 +154,7 @@ function field_conditional_state_settings_form($form, &$form_state, $instance) {
 
       $new_state['container_trigger_state']['negate-' . $state['id']]['#default_value'] = $negated;
 
-      $control_field_instance = field_info_instance($group['entity_type'], $control_field, $group['bundle']);
-
-      if (in_array($control_field_instance['widget']['type'], field_conditional_state_multi_trigger_value_is_supported())) {
-        $new_state['trigger_value-' . $state['id']]['#options'] = _field_conditional_states_allowed_values(field_info_field($control_field));
-        $new_state['trigger_value-' . $state['id']]['#type'] = 'select';
-        $new_state['trigger_value-' . $state['id']]['#multiple'] = TRUE;
-        $state['trigger_value'] = unserialize($state['trigger_value']);
-      }
-
-      $new_state['trigger_value-' . $state['id']]['#default_value'] = $state['trigger_value'];
+      $new_state['trigger_value-' . $state['id']] += call_user_func($settings['trigger_value_widget'], $state['trigger_value'], $bundle_instances[$control_field]);
 
       $bg = ($bg == 'odd' ? 'even' : 'odd');
     }
@@ -201,34 +167,22 @@ function field_conditional_state_settings_form($form, &$form_state, $instance) {
     $trigger_states = array();
     if (!empty($form_state['values']) && !empty($form_state['values']['control_field-' . $new_id])) {
       $control_field = $form_state['values']['control_field-' . $new_id];
-      $settings = _field_conditional_state_get_element_settings($dependees[$control_field]['widget']['type']);
+      $settings = _field_conditional_state_get_element_settings($bundle_instances[$control_field]['widget']['type']);
+      $new_state['trigger_value-' . $new_id] += call_user_func($settings['trigger_value_widget'], '', $bundle_instances[$control_field]);
+      $trigger_states = $settings['trigger_states'];
     }
 
     $new_state['control_field-' . $new_id]['#options'] = $dependees_as_options;
     $new_state['control_field-' . $new_id]['#field_conditional_state_group'] = $group;
     $new_state['control_field-' . $new_id]['#empty_value'] = '';
 
-    $new_state['container_trigger_state']['trigger_state-' . $new_id]['#options'] = $settings['trigger_states'];
+    $new_state['container_trigger_state']['trigger_state-' . $new_id]['#options'] = $trigger_states;
     $new_state['container_trigger_state']['trigger_state-' . $new_id]['#empty_value'] = '';
-
-    if (!is_null($control_field)) {
-      $control_field_instance = field_info_instance($group['entity_type'], $control_field, $group['bundle']);
-
-      if (in_array($control_field_instance['widget']['type'], field_conditional_state_multi_trigger_value_is_supported())) {
-        $new_state['trigger_value-' . $new_id]['#options'] = _field_conditional_states_allowed_values(field_info_field($control_field));
-        $new_state['trigger_value-' . $new_id]['#type'] = 'select';
-        $new_state['trigger_value-' . $new_id]['#multiple'] = TRUE;
-      }
-    }
 
     $new_state['delete-' . $new_id] = array(
       '#prefix' => '<td>',
       '#suffix' => '</td>',
     );
-  }
-
-  if ($invalid_states_count > 0) {
-    drupal_set_message(t("There are @count invalid states on this page. They were probably created in an earlier version of Field Conditional States but aren't supported anymore!", array('@count' => $invalid_states_count)), 'warning');
   }
 
   $form['action'] = array(
@@ -291,9 +245,11 @@ function field_conditional_state_settings_form_submit($form, $form_state) {
       'trigger_value' => 1,
     );
     if ($values['trigger_state-' . $id] == 'value') {
-      $fields['trigger_value'] = $values['trigger_value-' . $id];
+      $control_field_instance = field_info_instance($instance['entity_type'], $values['control_field-' . $id], $instance['bundle']);
+      $control_field_settings = _field_conditional_state_get_element_settings($control_field_instance['widget']['type']);
+      $fields['trigger_value'] = call_user_func($control_field_settings['trigger_value_submit'], $values['trigger_value-' . $id]);
 
-      // Serialize trigger values of multiselect fields.
+      // Serialize trigger values if necessary.
       if (is_array($fields['trigger_value'])) {
         $fields['trigger_value'] = serialize($fields['trigger_value']);
       }
@@ -309,9 +265,11 @@ function field_conditional_state_settings_form_submit($form, $form_state) {
     if (!empty($values['control_field-new-' . $id]) && !empty($values['trigger_state-new-' . $id])) {
       $trigger_value = 1;
       if ($values['trigger_state-new-' . $id] == 'value') {
-        $trigger_value = $values['trigger_value-new-' . $id];
+        $control_field_instance = field_info_instance($instance['entity_type'], $values['control_field-new-' . $id], $instance['bundle']);
+        $control_field_settings = _field_conditional_state_get_element_settings($control_field_instance['widget']['type']);
+        $trigger_value = call_user_func($control_field_settings['trigger_value_submit'], $values['trigger_value-new-' . $id]);
 
-        // Serialize trigger values of multiselect fields.
+        // Serialize trigger values if necessary.
         if (is_array($trigger_value)) {
           $trigger_value = serialize($trigger_value);
         }
@@ -392,7 +350,8 @@ function _field_conditional_state_get_state_default_row($id, $classes = array())
   $new_state['trigger_value-' . $id] = array(
     '#prefix' => '<td>',
     '#suffix' => '</td>',
-    '#type' => 'textfield',
+    '#type' => 'container',
+    '#tree' => TRUE,
     '#states' => array(
       'visible' => array(
         ':input[name="trigger_state-' . check_plain($id) . '"]' => array('value' => 'value'),
@@ -461,4 +420,49 @@ function _field_conditional_state_delete_condition_group($form, $form_state) {
       ->condition('group_id', $group_id)
       ->execute();
   }
+}
+
+function _field_conditional_state_default_trigger_value_widget ($value, $instance) {
+  return array(
+    'value' => array(
+      '#type' => 'textfield',
+      '#title' => t('Trigger value'),
+      '#title_display' => 'invisible',
+      '#default_value' => $value,
+    ),
+  );
+}
+
+function _field_conditional_state_default_trigger_value_submit ($data) {
+  return $data['value'];
+}
+
+function _field_conditional_state_select_trigger_value_widget ($value, $instance) {
+  $default_val = @unserialize($value);
+  if (!$default_val) {
+    $default_val = '';
+  }
+  $field = field_info_field($instance['field_name']);
+  $options = array();
+  switch ($field['module']) {
+    case 'taxonomy':
+      $options = taxonomy_allowed_values($field);
+    break;
+    default:
+      $options = list_allowed_values($field);
+  }
+  return array(
+    'values' => array(
+      '#type' => 'select',
+      '#title' => t('Trigger value'),
+      '#title_display' => 'invisible',
+      '#options' => $options,
+      '#multiple' => TRUE,
+      '#default_value' => $default_val,
+    ),
+  );
+}
+
+function _field_conditional_state_select_trigger_value_submit ($data) {
+  return $data['values'];
 }
