@@ -876,7 +876,7 @@ function field_conditional_state_field_delete_instance($instance) {
         ->execute();
     }
     else {
-      $delete->condition('control_field', $record['field_name']);
+      $delete->condition('control_field', $instance['field_name']);
     }
 
     $delete->execute();
