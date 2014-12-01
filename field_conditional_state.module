@@ -823,12 +823,18 @@ function field_conditional_state_form_field_ui_widget_type_form_alter(&$form, &$
       continue;
     }
 
-    $settings = _field_conditional_state_get_element_settings($widget_name);
-    $possible_trigger_states = array_keys($settings['trigger_states']);
-    $possible_states = array_keys($settings['field_states']);
+    // By default fields aren't supported as control fields.
+    $compatible_as_control_field = FALSE;
 
-    $compatible_as_control_field = count(array_intersect($active_trigger_states, $possible_trigger_states)) == count($active_trigger_states);
-    $compatible_as_controled_field = count(array_intersect($active_states, $possible_states)) == count($active_states);
+    $settings = _field_conditional_state_get_element_settings($widget_name);
+
+    if (!empty($settings['trigger_states']) && !empty($settings['field_states'])) {
+      $possible_trigger_states = array_keys($settings['trigger_states']);
+      $possible_states = array_keys($settings['field_states']);
+
+      $compatible_as_control_field = count(array_intersect($active_trigger_states, $possible_trigger_states)) == count($active_trigger_states);
+      $compatible_as_controled_field = count(array_intersect($active_states, $possible_states)) == count($active_states);
+    }
 
     if (!$compatible_as_control_field || !$compatible_as_controled_field) {
       unset($form['basic']['widget_type']['#options'][$widget_name]);
