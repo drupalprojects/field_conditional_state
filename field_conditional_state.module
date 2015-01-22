@@ -126,6 +126,11 @@ function _field_conditional_state_get_element_settings($widget_type = NULL) {
     $settings['starrating_rating_widget']['form_elements'][] = array('value');
     $settings['starrating_rating_widget']['field_data'] = array('value');
 
+    $settings['link_field'] = $settings_default;
+    $settings['link_field']['form_elements'][] = array('title');
+    $settings['link_field']['form_elements'][] = array('url');
+    $settings['link_field']['reprocess_from_root'] = TRUE;
+
     $settings['number'] = $settings_default;
     $settings['number']['form_elements'][] = array('value');
     $settings['number']['field_data'] = array('value');
@@ -322,6 +327,7 @@ function _field_conditional_state_get_field_states($type) {
     case 'entityreference_autocomplete_tags':
     case 'file_generic':
     case 'image_image':
+    case 'link_field':
     case 'number':
     case 'options_buttons':
     case 'options_select':
