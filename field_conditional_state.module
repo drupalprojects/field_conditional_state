@@ -85,6 +85,16 @@ function _field_conditional_state_get_element_settings($widget_type = NULL) {
       'trigger_value_submit' => '_field_conditional_state_default_trigger_value_submit',
     );
 
+    $settings['addressfield_standard'] = $settings_default;
+    $settings['addressfield_standard']['form_elements'][] = array('street_block', 'thoroughfare');
+    $settings['addressfield_standard']['form_elements'][] = array('street_block', 'premise');
+    $settings['addressfield_standard']['form_elements'][] = array('locality_block', 'locality');
+    $settings['addressfield_standard']['form_elements'][] = array('country');
+    $settings['addressfield_standard']['form_elements'][] = array('organisation_block', 'organisation_name');
+    $settings['addressfield_standard']['form_elements'][] = array('name_block', 'name_line');
+    $settings['addressfield_standard']['form_elements'][] = array('name_block', 'first_name');
+    $settings['addressfield_standard']['form_elements'][] = array('name_block', 'last_name');
+
     $settings['enfield_widget'] = $settings_default;
     $settings['enfield_widget']['form_elements'][] = array('fid');
     $settings['enfield_widget']['field_data'] = array('fid');
@@ -305,6 +315,7 @@ function _field_conditional_state_get_field_states($type) {
   $states = array();
 
   switch ($type) {
+    case 'addressfield_standard':
     case 'email_textfield':
     case 'enfield_widget':
     case 'entityreference_autocomplete':
