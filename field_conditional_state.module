@@ -452,8 +452,23 @@ function field_conditional_state_element_after_build($element, &$form_state) {
     // Add the #pre_render callbacks.
     if ($visibility_state_active) {
       if ($element_settings['reprocess_from_root']) {
+        if ($element['#entity_type'] == 'field_collection_item' && isset($element['#array_parents'][3])) {
+          // For an element within a field collection, we look for the element 3
+          // levels up from the root (field -> langcode -> index).
+          $path = array(
+            // Field collection element that has the element as a parent.
+            $element['#array_parents'][0],
+            $element['#array_parents'][1],
+            $element['#array_parents'][2],
+            // The element we are looking for the path to instead.
+            $element['#array_parents'][3],
+          );
+        }
+        else {
+          $path = array($element['#array_parents'][0]);
+        }
         $actions = array(
-          'path' => array($element['#array_parents'][0]),
+          'path' => $path,
           'set_pre_render' => '_field_conditional_state_add_visibility_states',
           'field_name' => $field_data['#field_name'],
         );
@@ -702,9 +717,24 @@ function _field_conditional_state_form_after_build($form, $form_state) {
         $element['#pre_render'] = array();
       }
       $element['#pre_render'][] = $action['set_pre_render'];
+      $path = $action['path'];
+      // Remove the uppermost element so we can get the path to the parent.
+      array_pop($path);
+      $parent_path = $path;
+      $parent_element = &drupal_array_get_nested_value($form, $parent_path);
+      if ($parent_element['#entity_type'] == 'field_collection_item') {
+        // Field collection items set a custom entity_type/bundle.
+        // See also: https://www.drupal.org/node/2113993
+        $entity_type = 'field_collection_item';
+        $bundle = $parent_element['#bundle'];
+      }
+      else {
+        $entity_type = $form['#entity_type'];
+        $bundle = $form['#bundle'];
+      }
       $element['#field_conditional_state'] = array(
-        'entity_type' => $form['#entity_type'],
-        'bundle' => $form['#bundle'],
+        'entity_type' => $entity_type,
+        'bundle' => $bundle,
         'field_name' => $action['field_name'],
       );
     }
