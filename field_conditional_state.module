@@ -452,7 +452,7 @@ function field_conditional_state_element_after_build($element, &$form_state) {
     // Add the #pre_render callbacks.
     if ($visibility_state_active) {
       if ($element_settings['reprocess_from_root']) {
-        if ($element['#entity_type'] == 'field_collection_item' && isset($element['#array_parents'][3])) {
+        if (isset($element['#entity_type']) && $element['#entity_type'] == 'field_collection_item' && isset($element['#array_parents'][3])) {
           // For an element within a field collection, we look for the element 3
           // levels up from the root (field -> langcode -> index).
           $path = array(
